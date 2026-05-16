@@ -1,0 +1,1595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BaZi / SaJu 사주 Calculator</title>
+<style>
+:root {
+  --bg: #080810;
+  --bg2: #10101c;
+  --bg3: #181828;
+  --bg4: #202035;
+  --border: #2a2a45;
+  --gold: #c8a951;
+  --gold2: #e0c870;
+  --text: #e0d8c8;
+  --text2: #a09888;
+  --text3: #5a5870;
+  --wood: #4aa862;
+  --fire: #e05540;
+  --earth: #c09038;
+  --metal: #9898b8;
+  --water: #4080c8;
+  --r: 8px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;min-height:100vh;line-height:1.6}
+a{color:var(--gold)}
+
+/* HEADER */
+header{background:linear-gradient(180deg,#0c0c1a 0%,var(--bg) 100%);border-bottom:1px solid var(--border);padding:20px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.logo{display:flex;align-items:center;gap:12px}
+.logo-zh{font-size:2rem;color:var(--gold);letter-spacing:4px;text-shadow:0 0 20px rgba(200,169,81,.4)}
+.logo-text h1{font-size:1.1rem;font-weight:600;color:var(--text)}
+.logo-text p{font-size:.8rem;color:var(--text2)}
+.lang-toggle{display:flex;gap:8px}
+.lang-btn{padding:6px 16px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;font-size:.85rem;transition:.2s}
+.lang-btn.active{background:var(--gold);border-color:var(--gold);color:#000;font-weight:600}
+
+/* LAYOUT */
+.container{max-width:1100px;margin:0 auto;padding:24px 16px}
+.section{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:24px;margin-bottom:20px}
+.section-title{font-size:.75rem;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.section-title::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* FORM */
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;align-items:end}
+.form-group{display:flex;flex-direction:column;gap:6px}
+.form-group label{font-size:.78rem;color:var(--text2);font-weight:500}
+.form-group input,.form-group select{background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:9px 12px;font-size:.9rem;width:100%;outline:none;transition:.2s}
+.form-group input:focus,.form-group select:focus{border-color:var(--gold);box-shadow:0 0 0 2px rgba(200,169,81,.15)}
+.form-group select option{background:var(--bg3)}
+.form-note{font-size:.75rem;color:var(--text3);margin-top:6px}
+.calc-btn{background:linear-gradient(135deg,var(--gold) 0%,#b8902a 100%);border:none;color:#000;font-weight:700;font-size:.95rem;padding:12px 32px;border-radius:6px;cursor:pointer;transition:.2s;white-space:nowrap;align-self:flex-end}
+.calc-btn:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(200,169,81,.35)}
+
+/* PILLARS */
+.pillars-wrap{overflow-x:auto}
+.pillars{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;min-width:420px}
+.pillar{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:12px 8px;text-align:center;transition:.2s;position:relative}
+.pillar-label{font-size:.68rem;letter-spacing:1.5px;color:var(--text3);text-transform:uppercase;margin-bottom:8px}
+.pillar-tengod{font-size:.7rem;color:var(--text2);min-height:18px;margin-bottom:2px}
+.pillar-stem{font-size:2.8rem;font-weight:700;line-height:1;margin-bottom:2px;transition:.3s}
+.pillar-stem-sub{font-size:.75rem;color:var(--text2);margin-bottom:10px}
+.pillar-branch{font-size:2.8rem;font-weight:700;line-height:1;margin-bottom:2px;transition:.3s}
+.pillar-branch-sub{font-size:.75rem;color:var(--text2);margin-bottom:8px}
+.pillar-hidden{display:flex;justify-content:center;gap:4px;flex-wrap:wrap;margin-top:6px;padding-top:6px;border-top:1px solid var(--border)}
+.hidden-stem{font-size:.78rem;padding:2px 6px;border-radius:4px;border:1px solid var(--border)}
+.hidden-stem.main{border-style:solid;font-weight:600}
+.day-pillar{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold) inset}
+
+/* ELEMENT COLORS */
+.elem-wood{color:var(--wood)}
+.elem-fire{color:var(--fire)}
+.elem-earth{color:var(--earth)}
+.elem-metal{color:var(--metal)}
+.elem-water{color:var(--water)}
+.bg-wood{background:rgba(74,168,98,.15);border-color:rgba(74,168,98,.4)}
+.bg-fire{background:rgba(224,85,64,.15);border-color:rgba(224,85,64,.4)}
+.bg-earth{background:rgba(192,144,56,.15);border-color:rgba(192,144,56,.4)}
+.bg-metal{background:rgba(152,152,184,.15);border-color:rgba(152,152,184,.4)}
+.bg-water{background:rgba(64,128,200,.15);border-color:rgba(64,128,200,.4)}
+
+/* ELEMENT BALANCE */
+.elem-bars{display:flex;flex-direction:column;gap:10px}
+.elem-row{display:grid;grid-template-columns:80px 1fr 36px;align-items:center;gap:10px}
+.elem-name{font-size:.85rem;font-weight:600;display:flex;align-items:center;gap:6px}
+.elem-bar-bg{height:10px;background:var(--bg3);border-radius:5px;overflow:hidden}
+.elem-bar{height:100%;border-radius:5px;transition:width .8s ease}
+.elem-count{font-size:.8rem;color:var(--text2);text-align:right}
+
+/* TABS */
+.tabs{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:16px}
+.tab-btn{padding:7px 16px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;font-size:.82rem;transition:.2s}
+.tab-btn.active{background:var(--bg4);border-color:var(--gold);color:var(--gold)}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
+/* ANALYSIS CARDS */
+.analysis-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
+.analysis-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:16px}
+.analysis-card h4{font-size:.8rem;font-weight:600;letter-spacing:1px;color:var(--gold);margin-bottom:8px;text-transform:uppercase}
+.analysis-card p{font-size:.88rem;color:var(--text2);line-height:1.7}
+.strength-badge{display:inline-block;padding:3px 12px;border-radius:12px;font-size:.78rem;font-weight:600;margin-top:6px}
+.strong{background:rgba(74,168,98,.2);color:var(--wood);border:1px solid rgba(74,168,98,.4)}
+.weak{background:rgba(64,128,200,.2);color:var(--water);border:1px solid rgba(64,128,200,.4)}
+.neutral{background:rgba(192,144,56,.2);color:var(--earth);border:1px solid rgba(192,144,56,.4)}
+
+/* TEN GODS TABLE */
+.tengod-table{width:100%;border-collapse:collapse;font-size:.85rem}
+.tengod-table th{background:var(--bg4);color:var(--text2);padding:8px 12px;text-align:left;font-weight:500;font-size:.75rem;letter-spacing:1px}
+.tengod-table td{padding:8px 12px;border-bottom:1px solid var(--border)}
+.tengod-table tr:last-child td{border-bottom:none}
+.tengod-table tr:hover td{background:var(--bg3)}
+.tg-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:.75rem;font-weight:600;background:var(--bg4);border:1px solid var(--border)}
+
+/* LUCK CYCLES TABLE */
+.luck-table{width:100%;border-collapse:collapse;font-size:.85rem}
+.luck-table th{background:var(--bg4);color:var(--text2);padding:8px 12px;font-weight:500;font-size:.75rem;text-align:center}
+.luck-table td{padding:10px 12px;border-bottom:1px solid var(--border);text-align:center}
+.luck-table .current{background:rgba(200,169,81,.08);border-left:3px solid var(--gold)}
+.luck-table tr:hover td{background:var(--bg3)}
+.luck-stem{font-size:1.4rem;font-weight:700;line-height:1}
+.luck-branch{font-size:1.4rem;font-weight:700;line-height:1}
+.luck-sub{font-size:.7rem;color:var(--text2)}
+.luck-age{font-size:.88rem;color:var(--text2)}
+
+/* SPECIAL STARS */
+.stars-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px}
+.star-item{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:10px 12px}
+.star-name{font-size:.8rem;font-weight:600;color:var(--gold);margin-bottom:2px}
+.star-info{font-size:.75rem;color:var(--text2)}
+.star-present{border-color:rgba(200,169,81,.5);background:rgba(200,169,81,.05)}
+
+/* MISC */
+.divider{height:1px;background:var(--border);margin:16px 0}
+.tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:.72rem;font-weight:600;margin-right:4px;margin-bottom:4px}
+.placeholder{text-align:center;padding:60px 20px;color:var(--text3)}
+.placeholder .icon{font-size:3rem;margin-bottom:12px}
+.placeholder p{font-size:.9rem}
+.info-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.info-chip{background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:.78rem;color:var(--text2)}
+.info-chip span{color:var(--text);font-weight:600}
+
+/* ── CHAT ── */
+.chat-wrap{margin-top:0}
+.chat-api-row{display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
+.chat-api-row label{font-size:.75rem;color:var(--text2);white-space:nowrap}
+.chat-api-input{flex:1;min-width:180px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 12px;font-size:.83rem;outline:none;font-family:monospace;transition:.2s}
+.chat-api-input:focus{border-color:var(--gold)}
+.chat-notice{font-size:.72rem;color:var(--text3);margin-bottom:10px}
+.chat-suggestions{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.chat-sug{background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:4px 12px;font-size:.76rem;color:var(--text2);cursor:pointer;transition:.2s;white-space:nowrap}
+.chat-sug:hover{border-color:var(--gold);color:var(--gold-light)}
+.chat-messages{min-height:80px;max-height:440px;overflow-y:auto;padding:14px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);margin-bottom:10px;display:flex;flex-direction:column;gap:10px}
+.chat-msg{display:flex;max-width:88%}
+.chat-user{align-self:flex-end}
+.chat-assistant,.chat-system-msg{align-self:flex-start}
+.chat-bubble{padding:10px 14px;border-radius:12px;font-size:.87rem;line-height:1.7}
+.chat-user    .chat-bubble{background:var(--gold);color:#000;border-radius:12px 12px 2px 12px;font-weight:500}
+.chat-assistant .chat-bubble{background:var(--bg4);border:1px solid var(--border);color:var(--text);border-radius:12px 12px 12px 2px}
+.chat-system-msg .chat-bubble{background:rgba(200,169,81,.07);border:1px solid rgba(200,169,81,.25);color:var(--text2);border-radius:8px;font-size:.8rem}
+.chat-loading .chat-bubble{opacity:.6}
+.chat-dots span{animation:dotblink 1.4s infinite;display:inline-block;font-size:1.4rem;line-height:.4;vertical-align:middle}
+.chat-dots span:nth-child(2){animation-delay:.22s}
+.chat-dots span:nth-child(3){animation-delay:.44s}
+@keyframes dotblink{0%,80%,100%{opacity:.2}40%{opacity:1}}
+.chat-input-row{display:flex;gap:8px}
+.chat-input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:9px 14px;font-size:.9rem;outline:none;transition:.2s}
+.chat-input:focus{border-color:var(--gold);box-shadow:0 0 0 2px rgba(200,169,81,.12)}
+.chat-send-btn{background:var(--gold);border:none;color:#000;font-weight:700;padding:9px 22px;border-radius:6px;cursor:pointer;font-size:.9rem;transition:.2s;white-space:nowrap}
+.chat-send-btn:hover:not(:disabled){filter:brightness(1.12);transform:translateY(-1px)}
+.chat-send-btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+
+/* RESPONSIVE */
+@media(max-width:600px){
+  .pillars{grid-template-columns:repeat(2,1fr)}
+  .pillar-stem,.pillar-branch{font-size:2.2rem}
+  .form-grid{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">
+    <div class="logo-zh">四柱</div>
+    <div class="logo-text">
+      <h1 id="logo-title">BaZi / SaJu Calculator</h1>
+      <p id="logo-sub">Four Pillars of Destiny · 사주팔자 분석</p>
+    </div>
+  </div>
+  <div class="lang-toggle">
+    <button class="lang-btn active" onclick="setLang('en')" id="btn-en">English</button>
+    <button class="lang-btn" onclick="setLang('ko')" id="btn-ko">한국어</button>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- INPUT -->
+  <div class="section">
+    <div class="section-title" id="lbl-input">Birth Information</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label id="lbl-birthdate">Birth Date</label>
+        <input type="date" id="inp-date" value="1990-05-15">
+      </div>
+      <div class="form-group">
+        <label id="lbl-birthtime">Birth Time</label>
+        <input type="time" id="inp-time" value="09:30">
+      </div>
+      <div class="form-group">
+        <label id="lbl-gender">Gender</label>
+        <select id="inp-gender">
+          <option value="M">Male · 남</option>
+          <option value="F">Female · 여</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label id="lbl-calendar">Calendar</label>
+        <select id="inp-calendar">
+          <option value="solar">Solar (양력)</option>
+          <option value="lunar">Lunar (음력)</option>
+        </select>
+      </div>
+      <button class="calc-btn" onclick="calculate()" id="btn-calc">Calculate ✦</button>
+    </div>
+    <div class="form-grid" style="margin-top:12px">
+      <div class="form-group" style="grid-column:span 2">
+        <label id="lbl-city">City of Birth (출생지)</label>
+        <input type="text" id="inp-city" list="city-list" placeholder="e.g. Seoul, Tokyo, New York…" autocomplete="off" oninput="onCityInput(this.value)">
+        <datalist id="city-list"></datalist>
+      </div>
+      <div class="form-group">
+        <label id="lbl-longitude">Longitude (경도)</label>
+        <input type="number" id="inp-longitude" value="126.978" step="0.001" min="-180" max="180">
+      </div>
+      <div class="form-group">
+        <label id="lbl-utcoffset">UTC Offset</label>
+        <input type="number" id="inp-utcoffset" value="9" step="0.5" min="-12" max="14">
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;margin-top:10px">
+      <input type="checkbox" id="inp-solartime" checked style="accent-color:var(--gold);width:14px;height:14px;cursor:pointer">
+      <label for="inp-solartime" id="lbl-solartime" style="font-size:.78rem;color:var(--text2);cursor:pointer">True Solar Time · 진태양시 (longitude-based correction)</label>
+    </div>
+    <p class="form-note" id="lbl-note">★ Year pillar changes at 입춘(立春) ~Feb 4. Birth time affects the hour pillar. Unknown time: use 12:00.</p>
+  </div>
+
+  <!-- RESULT -->
+  <div id="result-area">
+    <div class="placeholder">
+      <div class="icon">☯</div>
+      <p id="placeholder-text">Enter your birth information above and click Calculate</p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+'use strict';
+// ─────────────────────────────────────────────
+// CONSTANTS
+// ─────────────────────────────────────────────
+const STEMS = [
+  {zh:'甲',en:'Jiǎ', ko:'갑',elem:0,yy:1},
+  {zh:'乙',en:'Yǐ',  ko:'을',elem:0,yy:0},
+  {zh:'丙',en:'Bǐng',ko:'병',elem:1,yy:1},
+  {zh:'丁',en:'Dīng',ko:'정',elem:1,yy:0},
+  {zh:'戊',en:'Wù',  ko:'무',elem:2,yy:1},
+  {zh:'己',en:'Jǐ',  ko:'기',elem:2,yy:0},
+  {zh:'庚',en:'Gēng',ko:'경',elem:3,yy:1},
+  {zh:'辛',en:'Xīn', ko:'신',elem:3,yy:0},
+  {zh:'壬',en:'Rén', ko:'임',elem:4,yy:1},
+  {zh:'癸',en:'Guǐ', ko:'계',elem:4,yy:0},
+];
+const BRANCHES = [
+  {zh:'子',en:'Zǐ',  ko:'자',anEn:'Rat',    anKo:'쥐',    elem:4,yy:1},
+  {zh:'丑',en:'Chǒu',ko:'축',anEn:'Ox',     anKo:'소',    elem:2,yy:0},
+  {zh:'寅',en:'Yín', ko:'인',anEn:'Tiger',  anKo:'호랑이',elem:0,yy:1},
+  {zh:'卯',en:'Mǎo', ko:'묘',anEn:'Rabbit', anKo:'토끼', elem:0,yy:0},
+  {zh:'辰',en:'Chén',ko:'진',anEn:'Dragon', anKo:'용',    elem:2,yy:1},
+  {zh:'巳',en:'Sì',  ko:'사',anEn:'Snake',  anKo:'뱀',    elem:1,yy:0},
+  {zh:'午',en:'Wǔ',  ko:'오',anEn:'Horse',  anKo:'말',    elem:1,yy:1},
+  {zh:'未',en:'Wèi', ko:'미',anEn:'Goat',   anKo:'양',    elem:2,yy:0},
+  {zh:'申',en:'Shēn',ko:'신',anEn:'Monkey', anKo:'원숭이',elem:3,yy:1},
+  {zh:'酉',en:'Yǒu', ko:'유',anEn:'Rooster',anKo:'닭',   elem:3,yy:0},
+  {zh:'戌',en:'Xū',  ko:'술',anEn:'Dog',    anKo:'개',    elem:2,yy:1},
+  {zh:'亥',en:'Hài', ko:'해',anEn:'Pig',    anKo:'돼지', elem:4,yy:0},
+];
+// Hidden stems: [residual/余氣, middle/中氣, main/本氣]
+const HIDDEN_STEMS = [
+  [8,9],       // 子
+  [9,7,5],     // 丑
+  [4,2,0],     // 寅
+  [0,1],       // 卯
+  [1,9,4],     // 辰
+  [4,6,2],     // 巳
+  [2,5,3],     // 午
+  [3,1,5],     // 未
+  [4,8,6],     // 申
+  [6,7],       // 酉
+  [7,3,4],     // 戌
+  [4,0,8],     // 亥
+];
+const ELEMENTS = ['Wood','Fire','Earth','Metal','Water'];
+const ELEMENTS_KO = ['목(木)','화(火)','토(土)','금(金)','수(水)'];
+const ELEM_CSS = ['wood','fire','earth','metal','water'];
+const ELEM_COLORS = ['#4aa862','#e05540','#c09038','#9898b8','#4080c8'];
+// Generate: wood→fire→earth→metal→water→wood
+// Control:  wood→earth, fire→metal, earth→water, metal→wood, water→fire
+const GENERATES = [1,2,3,4,0]; // GENERATES[i] = element generated by i
+const CONTROLS  = [2,3,4,0,1]; // CONTROLS[i]  = element controlled by i
+
+// 12 jie (节) solar term longitudes that start each Bazi month
+// Index i → 立春=0,惊蛰=1,...,小寒=11
+const JIE_LONS   = [315,345,15,45,75,105,135,165,195,225,255,285];
+const JIE_BRANCH = [2,3,4,5,6,7,8,9,10,11,0,1]; // Earthly branch for each month
+
+// ─────────────────────────────────────────────
+// LANGUAGE
+// ─────────────────────────────────────────────
+let LANG = 'en';
+
+const T = {
+  // UI Labels
+  'lbl-input':   {en:'Birth Information',    ko:'생년월일시 입력'},
+  'lbl-birthdate':{en:'Birth Date',          ko:'생년월일'},
+  'lbl-birthtime':{en:'Birth Time',          ko:'태어난 시간'},
+  'lbl-gender':  {en:'Gender',               ko:'성별'},
+  'lbl-calendar':{en:'Calendar',             ko:'달력'},
+  'lbl-note':    {en:'★ Year pillar changes at Ipchun (立春) ~Feb 4. Use 12:00 if time unknown.',
+                  ko:'★ 년주는 입춘(立春) 기준입니다(약 2월 4일). 시간을 모를 경우 12:00 입력.'},
+  'btn-calc':    {en:'Calculate ✦',          ko:'계산하기 ✦'},
+  'placeholder-text':{en:'Enter your birth information above and click Calculate',
+                       ko:'위에 생년월일시를 입력하고 계산하기를 클릭하세요'},
+  'logo-title':  {en:'BaZi / SaJu Calculator', ko:'사주팔자 계산기'},
+  'logo-sub':    {en:'Four Pillars of Destiny · 四柱八字', ko:'사주팔자 · Four Pillars of Destiny'},
+
+  // Section titles
+  's-pillars':   {en:'Four Pillars · 四柱',  ko:'사주 (四柱)'},
+  's-overview':  {en:'Overview',             ko:'개요'},
+  's-elements':  {en:'Five Elements Balance',ko:'오행 균형 (五行)'},
+  's-tengod':    {en:'Ten Gods (十神)',       ko:'십성 (十星)'},
+  's-stars':     {en:'Special Stars (神殺)', ko:'신살 (神殺)'},
+  's-luck':      {en:'Major Luck Cycles (大運)',ko:'대운 (大運)'},
+  's-annual':    {en:'Annual Luck (歲運)',   ko:'세운 (歲運)'},
+
+  // Pillar labels
+  'p-year':      {en:'Year Pillar',          ko:'년주 (年柱)'},
+  'p-month':     {en:'Month Pillar',         ko:'월주 (月柱)'},
+  'p-day':       {en:'Day Pillar',           ko:'일주 (日柱)'},
+  'p-hour':      {en:'Hour Pillar',          ko:'시주 (時柱)'},
+
+  // Element names
+  'e-wood':      {en:'Wood',  ko:'목(木)'},
+  'e-fire':      {en:'Fire',  ko:'화(火)'},
+  'e-earth':     {en:'Earth', ko:'토(土)'},
+  'e-metal':     {en:'Metal', ko:'금(金)'},
+  'e-water':     {en:'Water', ko:'수(水)'},
+
+  // Yin/Yang
+  'yang':        {en:'Yang (陽)', ko:'양(陽)'},
+  'yin':         {en:'Yin (陰)',  ko:'음(陰)'},
+
+  // Strength
+  'strong':      {en:'Strong Day Master (身强)',  ko:'신강 (身强)'},
+  'weak':        {en:'Weak Day Master (身弱)',    ko:'신약 (身弱)'},
+  'neutral':     {en:'Balanced (中和)',           ko:'중화 (中和)'},
+
+  // Ten gods
+  'bijian':      {en:'Parallel/Friend (比肩)',    ko:'비견 (比肩)'},
+  'jiecai':      {en:'Rob Wealth (劫財)',          ko:'겁재 (劫財)'},
+  'shishen':     {en:'Eating God (食神)',          ko:'식신 (食神)'},
+  'shangguan':   {en:'Hurting Officer (傷官)',     ko:'상관 (傷官)'},
+  'zhengcai':    {en:'Correct Wealth (正財)',      ko:'정재 (正財)'},
+  'piancai':     {en:'Side Wealth (偏財)',         ko:'편재 (偏財)'},
+  'zhengguan':   {en:'Correct Officer (正官)',     ko:'정관 (正官)'},
+  'qisha':       {en:'Seven Kills (七殺)',          ko:'칠살/편관 (七殺)'},
+  'zhengyin':    {en:'Correct Seal (正印)',        ko:'정인 (正印)'},
+  'pianyin':     {en:'Side Seal (偏印)',           ko:'편인/효신 (偏印)'},
+
+  // Special stars
+  'dohwa':       {en:'Peach Blossom (桃花)',    ko:'도화살 (桃花殺)'},
+  'yeokma':      {en:'Traveling Star (驛馬)',   ko:'역마살 (驛馬殺)'},
+  'hwagae':      {en:'Canopy Star (華蓋)',       ko:'화개살 (華蓋殺)'},
+  'gongmang':    {en:'Empty Space (空亡)',        ko:'공망 (空亡)'},
+  'gwansalgu':   {en:'Authority Star (官殺)',   ko:'관살 혼잡'},
+
+  // Misc
+  'forward':     {en:'Forward (順行)',           ko:'순행 (順行)'},
+  'backward':    {en:'Reverse (逆行)',           ko:'역행 (逆行)'},
+  'start-age':   {en:'Starts at age',            ko:'시작 나이'},
+  'current':     {en:'Current',                  ko:'현재'},
+  'daymaster':   {en:'Day Master',               ko:'일주 (日干)'},
+  'animal':      {en:'Zodiac Animal',            ko:'띠'},
+  'gender':      {en:'Gender',                   ko:'성별'},
+  'born':        {en:'Born',                     ko:'생년월일'},
+  'hidden-stems':{en:'Hidden Stems',             ko:'지장간'},
+};
+
+function t(key) {
+  if (!T[key]) return key;
+  return T[key][LANG] || T[key]['en'] || key;
+}
+function tElem(i) {
+  return LANG==='ko' ? ELEMENTS_KO[i] : ELEMENTS[i];
+}
+function stemLabel(s) {
+  return s.zh + ' (' + (LANG==='ko'?s.ko:s.en) + ')';
+}
+function branchLabel(b) {
+  return b.zh + ' (' + (LANG==='ko'?b.ko:b.en) + ')';
+}
+
+function setLang(lang) {
+  LANG = lang;
+  document.getElementById('btn-en').classList.toggle('active', lang==='en');
+  document.getElementById('btn-ko').classList.toggle('active', lang==='ko');
+  // Update static labels
+  ['lbl-input','lbl-birthdate','lbl-birthtime','lbl-gender','lbl-calendar',
+   'lbl-note','btn-calc','placeholder-text','logo-title','logo-sub'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = t(id);
+  });
+  // Re-render if calculation has been done
+  if (window._lastResult) renderResult(window._lastResult);
+}
+
+// ─────────────────────────────────────────────
+// CALENDAR DATA — sajupy lookup table
+// Source: https://github.com/0ssw1/sajupy
+// Pre-computed pillars + exact solar term times 1900–2100
+// ─────────────────────────────────────────────
+const CSV_URL = 'https://raw.githubusercontent.com/0ssw1/sajupy/main/src/sajupy/calendar_data.csv';
+
+let calendarData = null;  // Map<"Y-M-D", row>
+let _csvPromise  = null;
+
+const STEM_IDX   = Object.fromEntries(STEMS.map((s,i)   => [s.zh, i]));
+const BRANCH_IDX = Object.fromEntries(BRANCHES.map((b,i) => [b.zh, i]));
+
+function parsePillar(str) {
+  return { s: STEM_IDX[str[0]], b: BRANCH_IDX[str[1]] };
+}
+function csvKey(y, m, d) { return `${y}-${m}-${d}`; }
+function getCSVRow(y, m, d) { return calendarData?.get(csvKey(y, m, d)) ?? null; }
+
+async function loadCalendarData() {
+  if (calendarData) return true;
+  if (_csvPromise) return _csvPromise;
+  _csvPromise = (async () => {
+    try {
+      const resp = await fetch(CSV_URL);
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const text = await resp.text();
+      const lines = text.split('\n');
+      const hdrs  = lines[0].split(',').map(h => h.trim());
+      calendarData = new Map();
+      for (let i = 1; i < lines.length; i++) {
+        const parts = lines[i].split(',');
+        if (parts.length < 6) continue;
+        const row = {};
+        hdrs.forEach((h, k) => { row[h] = (parts[k] || '').trim(); });
+        const y = +row.year, m = +row.month, d = +row.day;
+        if (y) calendarData.set(csvKey(y, m, d), row);
+      }
+      return true;
+    } catch (e) {
+      console.warn('sajupy CSV load failed:', e.message);
+      return false;
+    }
+  })();
+  return _csvPromise;
+}
+
+// ─────────────────────────────────────────────
+// FOUR PILLARS — sajupy logic
+// ─────────────────────────────────────────────
+function calcSixtyIndex(s, b) {
+  for (let i = 0; i < 60; i++) if (i%10===s && i%12===b) return i;
+  return 0;
+}
+
+// The 12 solar terms (절기) that begin a new Bazi month
+const MONTHLY_JIEQI = new Set([
+  '立春','驚蟄','淸明','立夏','芒種','小暑','立秋','白露','寒露','立冬','大雪','小寒'
+]);
+
+function getYearPillarCSV(y, m, d) {
+  const row = getCSVRow(y, m, d);
+  return row ? parsePillar(row.year_pillar) : null;
+}
+
+function getMonthPillarCSV(y, m, d, hour, minute) {
+  const row = getCSVRow(y, m, d);
+  if (!row) return null;
+  // If a monthly jieqi falls on this day, compare birth time to the exact term time
+  if (row.term_time && MONTHLY_JIEQI.has(row.solar_term_hanja)) {
+    const tt       = String(row.term_time).padStart(12, '0');
+    const termMins = +tt.slice(8,10) * 60 + +tt.slice(10,12);
+    if (hour * 60 + minute < termMins) {
+      // Before the term — still the previous month
+      const prev    = new Date(y, m - 1, d - 1);
+      const prevRow = getCSVRow(prev.getFullYear(), prev.getMonth()+1, prev.getDate());
+      if (prevRow) return parsePillar(prevRow.month_pillar);
+    }
+  }
+  return parsePillar(row.month_pillar);
+}
+
+function getDayPillarCSV(y, m, d) {
+  const row = getCSVRow(y, m, d);
+  return row ? parsePillar(row.day_pillar) : null;
+}
+
+function getHourPillarCSV(y, m, d, hour, minute) {
+  // Hour 23 (야자시) is treated as 子時 of the NEXT day — use next day's stem
+  let dayStemCh;
+  if (hour === 23) {
+    const nxt    = new Date(y, m - 1, d + 1);
+    const nxtRow = getCSVRow(nxt.getFullYear(), nxt.getMonth()+1, nxt.getDate());
+    dayStemCh = nxtRow?.day_pillar[0] ?? getCSVRow(y, m, d)?.day_pillar[0];
+  } else {
+    dayStemCh = getCSVRow(y, m, d)?.day_pillar[0];
+  }
+  if (!dayStemCh) return null;
+
+  const dayStemIdx = STEM_IDX[dayStemCh];
+  const totalMin   = hour * 60 + minute;
+  // 子(0)=23–01, 丑(1)=01–03 … each 2-hour slot
+  const branchIdx  = (totalMin >= 23*60 || totalMin < 60) ? 0
+                   : Math.floor((totalMin + 60) / 120) % 12;
+  const stemIdx    = ((dayStemIdx % 5) * 2 + branchIdx) % 10;
+  return { s: stemIdx, b: branchIdx };
+}
+
+function applySolarCorrection(y, m, d, hour, minute, longitude, utcOffset) {
+  const corrMinutes = (longitude - utcOffset * 15) * 4;
+  let totalMins = hour * 60 + minute + corrMinutes;
+  const date = new Date(y, m - 1, d);
+  if (totalMins < 0) {
+    date.setDate(date.getDate() - 1);
+    totalMins += 1440;
+  } else if (totalMins >= 1440) {
+    date.setDate(date.getDate() + 1);
+    totalMins -= 1440;
+  }
+  return {
+    y: date.getFullYear(), m: date.getMonth() + 1, d: date.getDate(),
+    hour: Math.floor(totalMins / 60), minute: Math.round(totalMins % 60)
+  };
+}
+
+function computePillars(y, m, d, hour, minute, longitude, utcOffset, useSolarTime) {
+  let ey = y, em = m, ed = d, eh = hour, emin = minute;
+  if (useSolarTime && longitude != null) {
+    const c = applySolarCorrection(y, m, d, hour, minute, longitude, utcOffset ?? 9);
+    ey = c.y; em = c.m; ed = c.d; eh = c.hour; emin = c.minute;
+  }
+  const yearP  = getYearPillarCSV(ey, em, ed);
+  const monthP = getMonthPillarCSV(ey, em, ed, eh, emin);
+  const dayP   = getDayPillarCSV(ey, em, ed);
+  const hourP  = getHourPillarCSV(ey, em, ed, eh, emin);
+  if (!yearP || !monthP || !dayP || !hourP) throw new Error(
+    LANG === 'ko' ? '1900–2100년 사이의 날짜를 입력하세요.' : 'Date must be between 1900 and 2100.'
+  );
+  return {
+    year:  yearP,
+    month: monthP,
+    day:   { ...dayP, cycleIdx: calcSixtyIndex(dayP.s, dayP.b) },
+    hour:  hourP,
+  };
+}
+
+// ─────────────────────────────────────────────
+// TEN GODS
+// ─────────────────────────────────────────────
+function getTenGod(dmStemIdx, targetStemIdx) {
+  const dmElem = STEMS[dmStemIdx].elem;
+  const tElem  = STEMS[targetStemIdx].elem;
+  const dmYY   = STEMS[dmStemIdx].yy;
+  const tYY    = STEMS[targetStemIdx].yy;
+  const same   = dmYY === tYY;
+  if (dmElem === tElem)             return same ? 'bijian'    : 'jiecai';
+  if (GENERATES[dmElem] === tElem)  return same ? 'shishen'   : 'shangguan';
+  if (GENERATES[tElem]  === dmElem) return same ? 'pianyin'   : 'zhengyin';
+  if (CONTROLS[dmElem]  === tElem)  return same ? 'piancai'   : 'zhengcai';
+  if (CONTROLS[tElem]   === dmElem) return same ? 'qisha'     : 'zhengguan';
+  return 'unknown';
+}
+
+function getTenGodForBranch(dmStemIdx, branchIdx) {
+  const hs = HIDDEN_STEMS[branchIdx];
+  const mainStemIdx = hs[hs.length-1];
+  return getTenGod(dmStemIdx, mainStemIdx);
+}
+
+// ─────────────────────────────────────────────
+// ELEMENT ANALYSIS
+// ─────────────────────────────────────────────
+function countElements(pillars) {
+  const counts = [0,0,0,0,0];
+  const {year,month,day,hour} = pillars;
+  const allStems    = [year.s, month.s, day.s, hour.s];
+  const allBranches = [year.b, month.b, day.b, hour.b];
+
+  allStems.forEach(si => { counts[STEMS[si].elem]++; });
+  allBranches.forEach(bi => {
+    const hs = HIDDEN_STEMS[bi];
+    // Count main hidden stem as 0.5 and all others as 0.2 toward elements
+    hs.forEach((si, idx) => {
+      const weight = idx === hs.length-1 ? 0.5 : 0.2;
+      counts[STEMS[si].elem] += weight;
+    });
+  });
+  return counts;
+}
+
+function getDayMasterStrength(pillars) {
+  const dmElem = STEMS[pillars.day.s].elem;
+  const monthBranch = pillars.month.b;
+  // Season/month element
+  const seasonElem = BRANCHES[monthBranch].elem;
+
+  let score = 0;
+  // Seasonal bonus
+  if (seasonElem === dmElem) score += 3;
+  else if (GENERATES[seasonElem] === dmElem) score += 1.5;
+  else if (CONTROLS[seasonElem] === dmElem) score -= 2;
+  else if (GENERATES[dmElem] === seasonElem) score -= 0.5;
+  else if (CONTROLS[dmElem] === seasonElem) score -= 1;
+
+  // Count supporting/opposing from other 7 characters
+  const chars = [
+    {type:'stem', idx:pillars.year.s},
+    {type:'branch',idx:pillars.year.b},
+    {type:'stem', idx:pillars.month.s},
+    {type:'branch',idx:pillars.month.b},
+    // day branch
+    {type:'branch',idx:pillars.day.b},
+    {type:'stem', idx:pillars.hour.s},
+    {type:'branch',idx:pillars.hour.b},
+  ];
+
+  chars.forEach(c => {
+    const elem = c.type==='stem' ? STEMS[c.idx].elem : BRANCHES[c.idx].elem;
+    if (elem === dmElem) score += 1.5;
+    else if (GENERATES[elem] === dmElem) score += 1;
+    else if (CONTROLS[elem] === dmElem) score -= 1.5;
+    else if (GENERATES[dmElem] === elem) score -= 0.5;
+    else if (CONTROLS[dmElem] === elem) score -= 0.5;
+  });
+
+  if (score >= 3) return 'strong';
+  if (score <= -2) return 'weak';
+  return 'neutral';
+}
+
+function getUsefulElement(pillars, strength) {
+  const dmElem = STEMS[pillars.day.s].elem;
+  if (strength === 'strong') {
+    // Need output, wealth, or officer to channel energy
+    return [GENERATES[dmElem], CONTROLS[dmElem]];
+  } else if (strength === 'weak') {
+    // Need resource (generates me) or friend (same)
+    return [GENERATES[(dmElem+4)%5], dmElem]; // element that generates me
+  }
+  return [dmElem];
+}
+
+// ─────────────────────────────────────────────
+// GONG MANG (空亡 / 공망)
+// ─────────────────────────────────────────────
+function getGongMang(dayCycleIdx) {
+  const groupStart = Math.floor(dayCycleIdx / 10) * 10;
+  return [(groupStart + 10) % 12, (groupStart + 11) % 12];
+}
+
+// ─────────────────────────────────────────────
+// SPECIAL STARS
+// ─────────────────────────────────────────────
+const STAR_GROUPS = {
+  dohwa:  { '寅午戌':3, '亥卯未':0, '申子辰':9, '巳酉丑':6 },
+  yeokma: { '寅午戌':8, '亥卯未':5, '申子辰':2, '巳酉丑':11 },
+  hwagae: { '寅午戌':10,'亥卯未':7, '申子辰':4, '巳酉丑':1 },
+};
+
+function getBranchGroup(branchIdx) {
+  if ([2,6,10].includes(branchIdx)) return '寅午戌';
+  if ([11,3,7].includes(branchIdx)) return '亥卯未';
+  if ([8,0,4].includes(branchIdx))  return '申子辰';
+  if ([5,9,1].includes(branchIdx))  return '巳酉丑';
+  return null;
+}
+
+function getSpecialStars(pillars) {
+  const yearGroup  = getBranchGroup(pillars.year.b);
+  const dayGroup   = getBranchGroup(pillars.day.b);
+  const allBranches = [pillars.year.b, pillars.month.b, pillars.day.b, pillars.hour.b];
+  const stars = {};
+
+  ['dohwa','yeokma','hwagae'].forEach(star => {
+    const targetBranch = STAR_GROUPS[star][yearGroup];
+    const targetBranchD= STAR_GROUPS[star][dayGroup];
+    stars[star] = allBranches.filter(b => b===targetBranch || b===targetBranchD);
+  });
+
+  const gm = getGongMang(pillars.day.cycleIdx);
+  stars.gongmang = gm;
+  stars.gongmangPresent = allBranches.filter(b => gm.includes(b));
+
+  return stars;
+}
+
+// ─────────────────────────────────────────────
+// LUCK CYCLES
+// ─────────────────────────────────────────────
+function getLuckCycles(pillars, gender, year, month, day, hour, minute) {
+  const isYangYear = pillars.year.s % 2 === 0;
+  const isMale     = gender === 'M';
+  const isForward  = (isYangYear && isMale) || (!isYangYear && !isMale);
+
+  // Find days to nearest 절기 using the sajupy CSV (exact term times)
+  const birthDate = new Date(year, month - 1, day);
+  const birthMins = hour * 60 + minute;
+  let nearestDays = 30; // safe fallback
+
+  for (let offset = 1; offset <= 95; offset++) {
+    const sign = isForward ? 1 : -1;
+    const d = new Date(birthDate);
+    d.setDate(d.getDate() + sign * offset);
+    const row = getCSVRow(d.getFullYear(), d.getMonth()+1, d.getDate());
+    if (!row?.term_time || !MONTHLY_JIEQI.has(row.solar_term_hanja)) continue;
+
+    const tt       = String(row.term_time).padStart(12, '0');
+    const termMins = +tt.slice(8,10) * 60 + +tt.slice(10,12);
+    // Fractional days from birth moment to term moment
+    nearestDays = offset - birthMins / 1440 + termMins / 1440;
+    break;
+  }
+
+  const startAge      = nearestDays / 3; // 3 days ≈ 1 year
+  const monthCycleIdx = calcSixtyIndex(pillars.month.s, pillars.month.b);
+
+  const luckPillars = [];
+  for (let i = 1; i <= 9; i++) {
+    const offset = isForward ? i : -i;
+    const ci = ((monthCycleIdx + offset) % 60 + 60) % 60;
+    luckPillars.push({
+      stemIdx: ci % 10, branchIdx: ci % 12, cycleIdx: ci,
+      ageStart: startAge + (i-1)*10,
+      ageEnd:   startAge + (i-1)*10 + 9.9,
+      idx: i,
+    });
+  }
+
+  return { isForward, startAge, luckPillars };
+}
+
+function getCurrentLuckPillar(luckData, birthYear) {
+  const currentYear = new Date().getFullYear();
+  const age = currentYear - birthYear;
+  return luckData.luckPillars.find(lp =>
+    age >= lp.ageStart && age <= lp.ageEnd
+  );
+}
+
+// ─────────────────────────────────────────────
+// ANALYSIS TEXTS
+// ─────────────────────────────────────────────
+const DAY_MASTER_ANALYSIS = {
+  en: [
+    // 甲 Yang Wood
+    `甲木 (Yang Wood) — You are like a tall oak: upright, principled, and naturally inclined to lead. You have strong ambitions and a clear sense of direction. Your persistence is remarkable, though you can be rigid when faced with opposition. You thrive when given space to grow and are drawn to roles that allow you to guide others. Loyalty and integrity are your defining virtues.`,
+    // 乙 Yin Wood
+    `乙木 (Yin Wood) — Flexible and adaptable like a vine or willow, you possess a quiet strength that surprises those who underestimate you. You are artistic, socially graceful, and skilled at navigating complex situations. Rather than confronting obstacles directly, you find creative ways around them. You build meaningful relationships and have a gift for diplomacy.`,
+    // 丙 Yang Fire
+    `丙火 (Yang Fire) — Radiant as the sun, you bring light and warmth wherever you go. Your enthusiasm is infectious and your generosity boundless. You have natural charisma and a gift for inspiration. However, your brightness can sometimes overwhelm others or scatter your energy in too many directions. Focus channels your tremendous potential into lasting achievement.`,
+    // 丁 Yin Fire
+    `丁火 (Yin Fire) — Like a steady candle flame, you provide warmth, insight, and illumination to those close to you. You are thoughtful, perceptive, and deeply empathetic. Your strength lies in refinement and sustained effort rather than dramatic displays. You are drawn to intellectual and spiritual pursuits, and you excel at helping others find clarity.`,
+    // 戊 Yang Earth
+    `戊土 (Yang Earth) — Solid as a mountain, you project stability, reliability, and trustworthiness. People naturally gravitate to you for support and counsel. You are patient, methodical, and exceptionally resilient under pressure. Your challenge is adapting to change — once your mind is set, it can be difficult to shift. You excel as a foundation upon which others can build.`,
+    // 己 Yin Earth
+    `己土 (Yin Earth) — Like rich, fertile soil, you nourish everything and everyone around you. You are practical, detail-oriented, and deeply caring. You have a natural talent for organization and creating harmonious environments. Sometimes overly cautious or prone to worry, you flourish when you trust your own wisdom. Your nurturing nature makes you an exceptional caretaker and collaborator.`,
+    // 庚 Yang Metal
+    `庚金 (Yang Metal) — Sharp and resolute like a great sword, you possess determination, decisiveness, and unwavering principles. You are direct, sometimes to the point of bluntness, and you have little tolerance for dishonesty or inefficiency. Your sense of justice is strong. Under pressure you shine brightest, and your leadership in crises is unmatched. Tempering your edge with compassion brings your greatest success.`,
+    // 辛 Yin Metal
+    `辛金 (Yin Metal) — Refined as a precious jewel, you have an eye for beauty, detail, and perfection. You are discerning, elegant, and possess a keen aesthetic sense. While you may appear delicate, your inner resolve is formidable. You can be sensitive to criticism and perfectionist to a fault, but your high standards produce truly exceptional results. You thrive in refined, structured environments.`,
+    // 壬 Yang Water
+    `壬水 (Yang Water) — As vast and deep as the ocean, your intelligence, adaptability, and vision know few boundaries. You think broadly and strategically, always seeing the bigger picture. You are innovative, resourceful, and comfortable with change. Your challenge is channeling your immense energy into focus and follow-through. When directed, your natural wisdom leads to remarkable achievements.`,
+    // 癸 Yin Water
+    `癸水 (Yin Water) — Gentle as spring rain, you are intuitive, empathetic, and deeply perceptive. You sense the unspoken and understand nuance that others miss. Quietly persistent, you find ways through and around every obstacle. You value authenticity and emotional depth in relationships. Your creativity and insight are extraordinary, flowing most freely in quiet, contemplative environments.`,
+  ],
+  ko: [
+    // 甲 Yang Wood
+    `甲木 (양목) — 당신은 큰 나무처럼 곧고 원칙적이며 타고난 리더십을 지녔습니다. 강한 야망과 뚜렷한 방향성을 가지고 있으며, 인내심이 뛰어납니다. 다만 반대에 부딪히면 고집스러워질 수 있습니다. 성장할 공간이 주어질 때 번성하며, 타인을 이끄는 역할에 끌립니다. 충성심과 정직함이 가장 큰 미덕입니다.`,
+    // 乙 Yin Wood
+    `乙木 (음목) — 덩굴이나 버드나무처럼 유연하고 적응력이 뛰어나며, 조용한 강인함이 있습니다. 예술적 감각이 있고 사교적이며, 복잡한 상황을 능숙하게 헤쳐나갑니다. 장애물을 정면돌파하기보다 창의적인 방법으로 우회합니다. 의미 있는 인간관계를 구축하고 외교적 재능이 뛰어납니다.`,
+    // 丙 Yang Fire
+    `丙火 (양화) — 태양처럼 빛나는 당신은 어디를 가든 밝음과 따뜻함을 가져다 줍니다. 열정이 넘치고 관대하며 타고난 카리스마로 주변을 영감으로 채웁니다. 다만 에너지가 너무 다방면으로 분산될 수 있으니, 집중력을 키우면 잠재력을 최대로 발휘할 수 있습니다.`,
+    // 丁 Yin Fire
+    `丁火 (음화) — 촛불처럼 은은하고 따뜻하며 통찰력 있는 빛을 주변에 전합니다. 사려 깊고 예리하며 공감 능력이 뛰어납니다. 극적인 과시보다 차분한 노력으로 성과를 냅니다. 지적·정신적 탐구를 좋아하며, 타인이 명확함을 찾도록 돕는 데 탁월합니다.`,
+    // 戊 Yang Earth
+    `戊土 (양토) — 산처럼 묵직하고 안정적이며 신뢰할 수 있는 존재입니다. 사람들이 자연스럽게 지지와 조언을 구하러 옵니다. 참을성 있고 체계적이며 압박 속에서도 흔들리지 않습니다. 한번 결정한 것은 바꾸기 어려울 수 있으나, 타인이 의지할 수 있는 든든한 토대가 됩니다.`,
+    // 己 Yin Earth
+    `己土 (음토) — 비옥한 토양처럼 주변의 모든 것을 키워줍니다. 실용적이고 세심하며 깊은 배려심을 지녔습니다. 조화로운 환경을 만드는 재능과 조직력이 뛰어납니다. 때로 지나치게 조심스럽거나 걱정이 많을 수 있지만, 자신의 지혜를 믿으면 꽃을 피웁니다. 따뜻한 돌봄의 능력이 탁월합니다.`,
+    // 庚 Yang Metal
+    `庚金 (양금) — 큰 칼처럼 결단력 있고 원칙이 뚜렷합니다. 직접적이고 거침이 없으며, 정의감이 강합니다. 위기 상황에서 빛을 발하는 리더십은 타의 추종을 불허합니다. 날카로운 면을 자비와 조화시킬 때 가장 큰 성공을 거둡니다.`,
+    // 辛 Yin Metal
+    `辛金 (음금) — 정교한 보석처럼 아름다움과 디테일, 완벽함을 추구합니다. 분별력 있고 우아하며 예리한 심미안을 지녔습니다. 겉으로 섬세해 보이지만 내면의 의지는 강인합니다. 높은 기준이 탁월한 결과를 낳으며, 정제되고 체계적인 환경에서 빛을 발합니다.`,
+    // 壬 Yang Water
+    `壬水 (양수) — 바다처럼 광대하고 깊은 지성과 적응력, 비전을 지녔습니다. 전략적으로 사고하며 큰 그림을 봅니다. 혁신적이고 다재다능하며 변화에 편안함을 느낍니다. 거대한 에너지를 집중하여 끈기 있게 실행할 때 놀라운 성취를 이룹니다.`,
+    // 癸 Yin Water
+    `癸水 (음수) — 봄비처럼 부드럽고 직관적이며 깊은 공감 능력을 지녔습니다. 말하지 않은 것도 감지하고 미묘한 뉘앙스를 포착합니다. 조용하지만 끈질기게 모든 장애물을 돌파합니다. 진정성과 감정적 깊이를 소중히 여기며, 고요한 환경에서 창의성이 자유롭게 흘러넘칩니다.`,
+  ],
+};
+
+const ELEMENT_ANALYSIS = {
+  en: [
+    {label:'Wood',
+     strong:`Strong Wood energy: Ambitious, growth-oriented, and persistent. Natural leadership qualities with a strong sense of justice. Watch for stubbornness or inability to let go.`,
+     weak:`Weak Wood energy: May struggle with decisiveness or asserting boundaries. Cultivate patience and trust your growth process. Metal years may bring additional challenges.`},
+    {label:'Fire',
+     strong:`Strong Fire energy: Passionate, expressive, and charismatic. Natural warmth draws people to you. Guard against burnout, scattered focus, or impulsiveness.`,
+     weak:`Weak Fire energy: May tend toward introversion or hesitation. Nurturing environments and creative expression help ignite your inner spark.`},
+    {label:'Earth',
+     strong:`Strong Earth energy: Stable, reliable, and practical. Exceptional endurance and trustworthiness. Be mindful of excessive caution or resistance to change.`,
+     weak:`Weak Earth energy: May feel unstable or scattered. Building routines and grounding practices strengthens your foundation and sense of security.`},
+    {label:'Metal',
+     strong:`Strong Metal energy: Principled, determined, and precise. High standards and strong work ethic. Watch for rigidity, perfectionism, or difficulty accepting imperfection.`,
+     weak:`Weak Metal energy: May struggle with boundaries or follow-through. Developing structure and discipline brings clarity and focus.`},
+    {label:'Water',
+     strong:`Strong Water energy: Highly intuitive, adaptable, and wise. Deep emotional intelligence. Guard against excessive introspection, anxiety, or lack of direction.`,
+     weak:`Weak Water energy: May feel drained or indecisive under pressure. Rest, reflection, and creative expression help replenish your reserves.`},
+  ],
+  ko: [
+    {label:'목(木)',
+     strong:`목(木)이 강합니다: 야망이 크고 성장 지향적이며 끈기가 있습니다. 타고난 리더십과 강한 정의감을 지녔습니다. 고집스럽거나 내려놓지 못하는 경향을 조심하세요.`,
+     weak:`목(木)이 약합니다: 결단력이나 경계 설정에 어려움을 겪을 수 있습니다. 인내심을 기르고 자신의 성장 과정을 신뢰하세요. 금(金)의 해에 추가적인 도전이 있을 수 있습니다.`},
+    {label:'화(火)',
+     strong:`화(火)가 강합니다: 열정적이고 표현력이 풍부하며 카리스마가 넘칩니다. 자연스러운 따뜻함으로 사람들을 끌어당깁니다. 번아웃이나 집중력 분산, 충동성을 조심하세요.`,
+     weak:`화(火)가 약합니다: 내성적이거나 주저하는 경향이 있을 수 있습니다. 따뜻한 환경과 창의적 표현이 내면의 불꽃을 되살리는 데 도움이 됩니다.`},
+    {label:'토(土)',
+     strong:`토(土)가 강합니다: 안정적이고 신뢰할 수 있으며 실용적입니다. 뛰어난 인내심과 신뢰성을 지녔습니다. 과도한 신중함이나 변화에 대한 저항을 주의하세요.`,
+     weak:`토(土)가 약합니다: 불안하거나 산만한 느낌이 들 수 있습니다. 규칙적인 루틴과 접지(그라운딩) 실천이 기반을 강화하는 데 도움이 됩니다.`},
+    {label:'금(金)',
+     strong:`금(金)이 강합니다: 원칙적이고 결단력이 있으며 정확합니다. 높은 기준과 강한 직업 윤리를 지녔습니다. 경직성, 완벽주의, 불완전함을 받아들이지 못하는 것을 조심하세요.`,
+     weak:`금(金)이 약합니다: 경계 설정이나 끝까지 해내는 것이 어려울 수 있습니다. 구조와 규율을 개발하면 명확함과 집중력을 얻을 수 있습니다.`},
+    {label:'수(水)',
+     strong:`수(水)가 강합니다: 직관력이 뛰어나고 적응력이 좋으며 지혜롭습니다. 깊은 감성 지능을 지녔습니다. 과도한 내성, 불안감, 방향성 부재를 조심하세요.`,
+     weak:`수(水)가 약합니다: 압박 속에서 소진되거나 우유부단함을 느낄 수 있습니다. 휴식, 성찰, 창의적 표현이 에너지를 보충하는 데 도움이 됩니다.`},
+  ],
+};
+
+const LUCK_PILLAR_ANALYSIS = {
+  en: (stemName, branchName, elemName) =>
+    `The ${stemName}/${branchName} luck pillar brings ${elemName} energy to the forefront. This period activates themes related to the ten gods it represents in your chart. Pay attention to the interactions between this pillar and your natal four pillars to understand the quality of this period.`,
+  ko: (stemName, branchName, elemName) =>
+    `${stemName}/${branchName} 대운은 ${elemName} 에너지를 전면에 내세웁니다. 이 시기는 차트에서 나타나는 십성의 주제를 활성화시킵니다. 이 대운과 본명 사주와의 상호작용에 주목하여 이 시기의 특성을 이해하세요.`,
+};
+
+// ─────────────────────────────────────────────
+// CITY DATABASE
+// ─────────────────────────────────────────────
+const CITIES = [
+  // Korea
+  {name:'Seoul',          ko:'서울',    lon:126.978, utc:9},
+  {name:'Busan',          ko:'부산',    lon:129.075, utc:9},
+  {name:'Incheon',        ko:'인천',    lon:126.706, utc:9},
+  {name:'Daegu',          ko:'대구',    lon:128.601, utc:9},
+  {name:'Daejeon',        ko:'대전',    lon:127.384, utc:9},
+  {name:'Gwangju',        ko:'광주',    lon:126.851, utc:9},
+  {name:'Suwon',          ko:'수원',    lon:127.009, utc:9},
+  {name:'Ulsan',          ko:'울산',    lon:129.312, utc:9},
+  {name:'Jeju',           ko:'제주',    lon:126.532, utc:9},
+  // Japan
+  {name:'Tokyo',          ko:'도쿄',    lon:139.691, utc:9},
+  {name:'Osaka',          ko:'오사카',  lon:135.501, utc:9},
+  {name:'Kyoto',          ko:'교토',    lon:135.768, utc:9},
+  {name:'Nagoya',         ko:'나고야',  lon:136.906, utc:9},
+  {name:'Sapporo',        ko:'삿포로',  lon:141.352, utc:9},
+  {name:'Fukuoka',        ko:'후쿠오카',lon:130.418, utc:9},
+  {name:'Hiroshima',      ko:'히로시마',lon:132.461, utc:9},
+  // China
+  {name:'Beijing',        ko:'베이징',  lon:116.407, utc:8},
+  {name:'Shanghai',       ko:'상하이',  lon:121.473, utc:8},
+  {name:'Guangzhou',      ko:'광저우',  lon:113.264, utc:8},
+  {name:'Shenzhen',       ko:'선전',    lon:114.059, utc:8},
+  {name:'Chengdu',        ko:'청두',    lon:104.066, utc:8},
+  {name:'Wuhan',          ko:'우한',    lon:114.298, utc:8},
+  {name:'Nanjing',        ko:'난징',    lon:118.796, utc:8},
+  {name:"Xi'an",          ko:'시안',    lon:108.940, utc:8},
+  {name:'Chongqing',      ko:'충칭',    lon:106.550, utc:8},
+  {name:'Hong Kong',      ko:'홍콩',    lon:114.165, utc:8},
+  {name:'Macau',          ko:'마카오',  lon:113.549, utc:8},
+  // Taiwan
+  {name:'Taipei',         ko:'타이베이',lon:121.565, utc:8},
+  {name:'Kaohsiung',      ko:'가오슝',  lon:120.311, utc:8},
+  // Southeast Asia
+  {name:'Singapore',      ko:'싱가포르',lon:103.820, utc:8},
+  {name:'Kuala Lumpur',   ko:'쿠알라룸푸르',lon:101.686,utc:8},
+  {name:'Bangkok',        ko:'방콕',    lon:100.501, utc:7},
+  {name:'Jakarta',        ko:'자카르타',lon:106.827, utc:7},
+  {name:'Manila',         ko:'마닐라',  lon:120.984, utc:8},
+  {name:'Ho Chi Minh City',ko:'호찌민', lon:106.660, utc:7},
+  {name:'Hanoi',          ko:'하노이',  lon:105.834, utc:7},
+  {name:'Phnom Penh',     ko:'프놈펜',  lon:104.916, utc:7},
+  {name:'Yangon',         ko:'양곤',    lon:96.156,  utc:6.5},
+  // South Asia
+  {name:'Mumbai',         ko:'뭄바이',  lon:72.877,  utc:5.5},
+  {name:'Delhi',          ko:'델리',    lon:77.216,  utc:5.5},
+  {name:'Kolkata',        ko:'콜카타',  lon:88.363,  utc:5.5},
+  {name:'Chennai',        ko:'첸나이',  lon:80.270,  utc:5.5},
+  {name:'Karachi',        ko:'카라치',  lon:67.010,  utc:5},
+  {name:'Lahore',         ko:'라호르',  lon:74.329,  utc:5},
+  {name:'Dhaka',          ko:'다카',    lon:90.407,  utc:6},
+  {name:'Colombo',        ko:'콜롬보',  lon:79.862,  utc:5.5},
+  {name:'Kathmandu',      ko:'카트만두',lon:85.318,  utc:5.75},
+  // Central Asia / Russia
+  {name:'Almaty',         ko:'알마티',  lon:76.889,  utc:6},
+  {name:'Tashkent',       ko:'타슈켄트',lon:69.240,  utc:5},
+  {name:'Moscow',         ko:'모스크바',lon:37.617,  utc:3},
+  {name:'Vladivostok',    ko:'블라디보스토크',lon:131.873,utc:10},
+  // Middle East
+  {name:'Dubai',          ko:'두바이',  lon:55.296,  utc:4},
+  {name:'Abu Dhabi',      ko:'아부다비',lon:54.367,  utc:4},
+  {name:'Riyadh',         ko:'리야드',  lon:46.722,  utc:3},
+  {name:'Kuwait City',    ko:'쿠웨이트',lon:47.978,  utc:3},
+  {name:'Tehran',         ko:'테헤란',  lon:51.388,  utc:3.5},
+  {name:'Doha',           ko:'도하',    lon:51.534,  utc:3},
+  {name:'Istanbul',       ko:'이스탄불',lon:28.979,  utc:3},
+  {name:'Beirut',         ko:'베이루트',lon:35.501,  utc:2},
+  {name:'Tel Aviv',       ko:'텔아비브',lon:34.781,  utc:2},
+  {name:'Jerusalem',      ko:'예루살렘',lon:35.214,  utc:2},
+  {name:'Cairo',          ko:'카이로',  lon:31.235,  utc:2},
+  {name:'Ankara',         ko:'앙카라',  lon:32.866,  utc:3},
+  // Europe
+  {name:'London',         ko:'런던',    lon:-0.127,  utc:0},
+  {name:'Paris',          ko:'파리',    lon:2.347,   utc:1},
+  {name:'Berlin',         ko:'베를린',  lon:13.405,  utc:1},
+  {name:'Rome',           ko:'로마',    lon:12.496,  utc:1},
+  {name:'Madrid',         ko:'마드리드',lon:-3.703,  utc:1},
+  {name:'Barcelona',      ko:'바르셀로나',lon:2.154, utc:1},
+  {name:'Amsterdam',      ko:'암스테르담',lon:4.900, utc:1},
+  {name:'Brussels',       ko:'브뤼셀',  lon:4.351,   utc:1},
+  {name:'Vienna',         ko:'빈',      lon:16.363,  utc:1},
+  {name:'Zurich',         ko:'취리히',  lon:8.541,   utc:1},
+  {name:'Stockholm',      ko:'스톡홀름',lon:18.068,  utc:1},
+  {name:'Copenhagen',     ko:'코펜하겐',lon:12.568,  utc:1},
+  {name:'Oslo',           ko:'오슬로',  lon:10.739,  utc:1},
+  {name:'Helsinki',       ko:'헬싱키',  lon:25.004,  utc:2},
+  {name:'Warsaw',         ko:'바르샤바',lon:21.012,  utc:1},
+  {name:'Prague',         ko:'프라하',  lon:14.420,  utc:1},
+  {name:'Budapest',       ko:'부다페스트',lon:19.040,utc:1},
+  {name:'Bucharest',      ko:'부쿠레슈티',lon:26.103,utc:2},
+  {name:'Athens',         ko:'아테네',  lon:23.729,  utc:2},
+  {name:'Lisbon',         ko:'리스본',  lon:-9.139,  utc:0},
+  {name:'Dublin',         ko:'더블린',  lon:-6.260,  utc:0},
+  // Africa
+  {name:'Lagos',          ko:'라고스',  lon:3.406,   utc:1},
+  {name:'Nairobi',        ko:'나이로비',lon:36.817,  utc:3},
+  {name:'Johannesburg',   ko:'요하네스버그',lon:28.047,utc:2},
+  {name:'Cape Town',      ko:'케이프타운',lon:18.424, utc:2},
+  {name:'Casablanca',     ko:'카사블랑카',lon:-7.589, utc:1},
+  {name:'Addis Ababa',    ko:'아디스아바바',lon:38.763,utc:3},
+  // North America
+  {name:'New York',       ko:'뉴욕',    lon:-74.006, utc:-5},
+  {name:'Los Angeles',    ko:'로스앤젤레스',lon:-118.244,utc:-8},
+  {name:'Chicago',        ko:'시카고',  lon:-87.629, utc:-6},
+  {name:'Houston',        ko:'휴스턴',  lon:-95.370, utc:-6},
+  {name:'Phoenix',        ko:'피닉스',  lon:-112.074,utc:-7},
+  {name:'Philadelphia',   ko:'필라델피아',lon:-75.165,utc:-5},
+  {name:'San Francisco',  ko:'샌프란시스코',lon:-122.419,utc:-8},
+  {name:'Seattle',        ko:'시애틀',  lon:-122.332,utc:-8},
+  {name:'Las Vegas',      ko:'라스베이거스',lon:-115.138,utc:-8},
+  {name:'Toronto',        ko:'토론토',  lon:-79.383, utc:-5},
+  {name:'Vancouver',      ko:'밴쿠버',  lon:-123.121,utc:-8},
+  {name:'Montreal',       ko:'몬트리올',lon:-73.568, utc:-5},
+  {name:'Mexico City',    ko:'멕시코시티',lon:-99.133,utc:-6},
+  {name:'Honolulu',       ko:'호놀룰루',lon:-157.857,utc:-10},
+  {name:'Anchorage',      ko:'앵커리지',lon:-149.900,utc:-9},
+  // South America
+  {name:'São Paulo',      ko:'상파울루',lon:-46.633, utc:-3},
+  {name:'Rio de Janeiro', ko:'리우데자네이루',lon:-43.173,utc:-3},
+  {name:'Buenos Aires',   ko:'부에노스아이레스',lon:-58.381,utc:-3},
+  {name:'Lima',           ko:'리마',    lon:-77.043, utc:-5},
+  {name:'Bogotá',         ko:'보고타',  lon:-74.072, utc:-5},
+  {name:'Santiago',       ko:'산티아고',lon:-70.649, utc:-4},
+  // Oceania
+  {name:'Sydney',         ko:'시드니',  lon:151.209, utc:10},
+  {name:'Melbourne',      ko:'멜버른',  lon:144.962, utc:10},
+  {name:'Brisbane',       ko:'브리즈번',lon:153.026, utc:10},
+  {name:'Perth',          ko:'퍼스',    lon:115.861, utc:8},
+  {name:'Auckland',       ko:'오클랜드',lon:174.764, utc:12},
+];
+
+// Populate datalist and handle city selection
+(function initCityList() {
+  const dl = document.getElementById('city-list');
+  CITIES.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.name;
+    opt.label = `${c.name} · ${c.ko}`;
+    dl.appendChild(opt);
+  });
+})();
+
+function onCityInput(val) {
+  const lower = val.toLowerCase().trim();
+  const city = CITIES.find(c =>
+    c.name.toLowerCase() === lower || c.ko === val.trim()
+  );
+  if (city) {
+    document.getElementById('inp-longitude').value = city.lon;
+    document.getElementById('inp-utcoffset').value = city.utc;
+  }
+}
+
+// ─────────────────────────────────────────────
+// MAIN CALCULATE
+// ─────────────────────────────────────────────
+async function calculate() {
+  const dateVal = document.getElementById('inp-date').value;
+  const timeVal = document.getElementById('inp-time').value;
+  const gender  = document.getElementById('inp-gender').value;
+
+  if (!dateVal) { alert(LANG==='ko'?'생년월일을 입력하세요':'Please enter a birth date'); return; }
+
+  const btn = document.getElementById('btn-calc');
+  const origLabel = btn.textContent;
+  btn.textContent = LANG==='ko' ? '로딩 중…' : 'Loading…';
+  btn.disabled = true;
+
+  try {
+    const loaded = await loadCalendarData();
+    if (!loaded) throw new Error(LANG==='ko'
+      ? '달력 데이터를 불러오지 못했습니다. 인터넷 연결을 확인하세요.'
+      : 'Failed to load calendar data. Check your internet connection.');
+
+    const [year, month, day] = dateVal.split('-').map(Number);
+    const [hour, minute]     = (timeVal||'12:00').split(':').map(Number);
+    const longitude    = parseFloat(document.getElementById('inp-longitude').value) || 126.978;
+    const utcOffset    = parseFloat(document.getElementById('inp-utcoffset').value) ?? 9;
+    const useSolarTime = document.getElementById('inp-solartime').checked;
+
+    const pillars   = computePillars(year, month, day, hour, minute, longitude, utcOffset, useSolarTime);
+    const elemCounts= countElements(pillars);
+    const strength  = getDayMasterStrength(pillars);
+    const usefulEl  = getUsefulElement(pillars, strength);
+    const stars     = getSpecialStars(pillars);
+    const luckData  = getLuckCycles(pillars, gender, year, month, day, hour, minute);
+    const currentLP = getCurrentLuckPillar(luckData, year);
+
+    const result = {
+      year, month, day, hour, minute, gender,
+      pillars, elemCounts, strength, usefulEl, stars, luckData, currentLP,
+    };
+    window._lastResult = result;
+    renderResult(result);
+  } catch (e) {
+    alert(e.message);
+  } finally {
+    btn.textContent = origLabel;
+    btn.disabled = false;
+  }
+}
+
+// ─────────────────────────────────────────────
+// RENDERING
+// ─────────────────────────────────────────────
+function elemClass(stemIdx) {
+  return 'elem-' + ELEM_CSS[STEMS[stemIdx].elem];
+}
+function branchElemClass(branchIdx) {
+  return 'elem-' + ELEM_CSS[BRANCHES[branchIdx].elem];
+}
+function bgElemClass(stemIdx) {
+  return 'bg-' + ELEM_CSS[STEMS[stemIdx].elem];
+}
+
+function renderPillar(p, label, isDayMaster, dmStemIdx) {
+  const s = STEMS[p.s], b = BRANCHES[p.b];
+  const hs = HIDDEN_STEMS[p.b];
+  const tgDisplay = isDayMaster ? (LANG==='ko'?'일주 (나)':'Day Master (Self)') :
+    (dmStemIdx !== undefined ? t(getTenGod(dmStemIdx, p.s)) : '');
+
+  const hiddenHTML = hs.map((si, idx) => {
+    const stem = STEMS[si];
+    const isMain = idx === hs.length-1;
+    const tg = dmStemIdx !== undefined ? t(getTenGod(dmStemIdx, si)) : '';
+    const cls = 'hidden-stem ' + (isMain?'main ':'') + 'elem-' + ELEM_CSS[stem.elem];
+    return `<span class="${cls}" title="${tg||''}">${stem.zh}</span>`;
+  }).join('');
+
+  const yy = s.yy===1 ? t('yang') : t('yin');
+  const elemName = tElem(s.elem);
+
+  return `<div class="pillar${isDayMaster?' day-pillar':''}">
+    <div class="pillar-label">${label}</div>
+    <div class="pillar-tengod">${tgDisplay}</div>
+    <div class="pillar-stem ${elemClass(p.s)}">${s.zh}</div>
+    <div class="pillar-stem-sub">${LANG==='ko'?s.ko:s.en} · ${yy} · ${elemName}</div>
+    <div class="pillar-branch ${branchElemClass(p.b)}">${b.zh}</div>
+    <div class="pillar-branch-sub">${LANG==='ko'?b.ko:b.en} (${LANG==='ko'?b.anKo:b.anEn}) · ${tElem(b.elem)}</div>
+    <div class="pillar-hidden">${hiddenHTML}</div>
+  </div>`;
+}
+
+function renderResult(res) {
+  const {pillars, elemCounts, strength, usefulEl, stars, luckData, currentLP, year, gender} = res;
+  const dmStemIdx = pillars.day.s;
+  const dm = STEMS[dmStemIdx];
+
+  const currentYear = new Date().getFullYear();
+  const age = currentYear - year;
+
+  const infoHTML = `
+    <div class="info-row">
+      <div class="info-chip">${t('animal')}: <span>${LANG==='ko'?BRANCHES[pillars.year.b].anKo:BRANCHES[pillars.year.b].anEn} (${BRANCHES[pillars.year.b].zh})</span></div>
+      <div class="info-chip">${t('gender')}: <span>${gender==='M'?(LANG==='ko'?'남':'Male'):(LANG==='ko'?'여':'Female')}</span></div>
+      <div class="info-chip">${t('daymaster')}: <span>${dm.zh} (${LANG==='ko'?dm.ko:dm.en}) · ${tElem(dm.elem)}</span></div>
+      <div class="info-chip">${LANG==='ko'?'대운방향':'Luck Direction'}: <span>${luckData.isForward?t('forward'):t('backward')}</span></div>
+      <div class="info-chip">${t('start-age')}: <span>${luckData.startAge.toFixed(1)}</span></div>
+    </div>`;
+
+  // Pillars
+  const pillarsHTML = `
+    <div class="section">
+      <div class="section-title">${t('s-pillars')}</div>
+      ${infoHTML}
+      <div class="pillars-wrap">
+        <div class="pillars">
+          ${renderPillar(pillars.year,  t('p-year'),  false, dmStemIdx)}
+          ${renderPillar(pillars.month, t('p-month'), false, dmStemIdx)}
+          ${renderPillar(pillars.day,   t('p-day'),   true,  dmStemIdx)}
+          ${renderPillar(pillars.hour,  t('p-hour'),  false, dmStemIdx)}
+        </div>
+      </div>
+      <p style="font-size:.72rem;color:var(--text3);margin-top:10px">
+        ${t('hidden-stems')}: ${LANG==='ko'?'지지 속의 천간 — 여기(餘氣)/중기(中氣)/본기(本氣) 순서. 굵게 표시된 것이 본기(本氣)입니다.':'Hidden heavenly stems in each branch — residual/middle/main. Bold indicates the main (本氣).'}
+      </p>
+    </div>`;
+
+  // Element Balance
+  const maxCount = Math.max(...elemCounts, 4);
+  const elemBarsHTML = elemCounts.map((cnt, i) => {
+    const pct = Math.round(cnt / maxCount * 100);
+    return `<div class="elem-row">
+      <div class="elem-name elem-${ELEM_CSS[i]}"><span>●</span>${tElem(i)}</div>
+      <div class="elem-bar-bg"><div class="elem-bar" style="width:${pct}%;background:${ELEM_COLORS[i]}"></div></div>
+      <div class="elem-count">${cnt.toFixed(1)}</div>
+    </div>`;
+  }).join('');
+
+  const strengthKey = strength;
+  const strengthLabel = t(strengthKey);
+  const strengthClass = strengthKey;
+
+  // Day Master analysis text
+  const dmAnalysis = DAY_MASTER_ANALYSIS[LANG][dmStemIdx];
+
+  // Element balance analysis
+  const dominantElem = elemCounts.indexOf(Math.max(...elemCounts));
+  const weakestElem  = elemCounts.indexOf(Math.min(...elemCounts));
+  const elemAn = ELEMENT_ANALYSIS[LANG];
+
+  const usefulNames = usefulEl.map(e => tElem(e)).join(', ');
+
+  const overviewHTML = `
+    <div class="analysis-grid">
+      <div class="analysis-card">
+        <h4>${t('daymaster')} · ${dm.zh}</h4>
+        <p>${dmAnalysis}</p>
+        <div style="margin-top:8px">
+          <span class="strength-badge ${strengthClass}">${strengthLabel}</span>
+          <span class="tag" style="background:var(--bg4);border:1px solid var(--border);color:var(--text2);margin-left:4px">
+            ${LANG==='ko'?'용신':'Useful Element'}: ${usefulNames}
+          </span>
+        </div>
+      </div>
+      <div class="analysis-card">
+        <h4>${t('s-elements')}</h4>
+        <div class="elem-bars">${elemBarsHTML}</div>
+        <p style="margin-top:10px;font-size:.82rem;color:var(--text2)">
+          ${LANG==='ko'?'강한 오행':'Strongest'}: <strong class="elem-${ELEM_CSS[dominantElem]}">${tElem(dominantElem)}</strong> &nbsp;·&nbsp;
+          ${LANG==='ko'?'약한 오행':'Weakest'}: <strong class="elem-${ELEM_CSS[weakestElem]}">${tElem(weakestElem)}</strong>
+        </p>
+      </div>
+      <div class="analysis-card">
+        <h4>${LANG==='ko'?'오행 분석':'Element Analysis'}</h4>
+        <p>${elemAn[dominantElem].strong}</p>
+        ${dominantElem !== weakestElem ? `<div class="divider"></div><p>${elemAn[weakestElem].weak}</p>` : ''}
+      </div>
+    </div>`;
+
+  // Ten Gods table
+  const tengodRows = [
+    {pos: LANG==='ko'?'년간 (年干)':'Year Stem',   stemIdx:pillars.year.s,  type:'stem'},
+    {pos: LANG==='ko'?'년지 (年支)':'Year Branch', stemIdx:HIDDEN_STEMS[pillars.year.b].slice(-1)[0], type:'branch', branch:pillars.year.b},
+    {pos: LANG==='ko'?'월간 (月干)':'Month Stem',  stemIdx:pillars.month.s, type:'stem'},
+    {pos: LANG==='ko'?'월지 (月支)':'Month Branch',stemIdx:HIDDEN_STEMS[pillars.month.b].slice(-1)[0],type:'branch', branch:pillars.month.b},
+    {pos: LANG==='ko'?'일지 (日支)':'Day Branch',  stemIdx:HIDDEN_STEMS[pillars.day.b].slice(-1)[0],  type:'branch', branch:pillars.day.b},
+    {pos: LANG==='ko'?'시간 (時干)':'Hour Stem',   stemIdx:pillars.hour.s,  type:'stem'},
+    {pos: LANG==='ko'?'시지 (時支)':'Hour Branch', stemIdx:HIDDEN_STEMS[pillars.hour.b].slice(-1)[0], type:'branch', branch:pillars.hour.b},
+  ].map(row => {
+    const tg  = getTenGod(dmStemIdx, row.stemIdx);
+    const tgName = t(tg);
+    const stemCh = row.type==='branch' ? BRANCHES[row.branch].zh : STEMS[row.stemIdx].zh;
+    const stemSub= row.type==='branch'
+      ? `${STEMS[row.stemIdx].zh} (${LANG==='ko'?STEMS[row.stemIdx].ko:STEMS[row.stemIdx].en})`
+      : `${STEMS[row.stemIdx].zh} (${LANG==='ko'?STEMS[row.stemIdx].ko:STEMS[row.stemIdx].en})`;
+    const elemColor = ELEM_COLORS[STEMS[row.stemIdx].elem];
+    return `<tr>
+      <td>${row.pos}</td>
+      <td>${row.type==='branch'?`<span class="${branchElemClass(row.branch)}">${stemCh}</span>`:''} <span class="${elemClass(row.stemIdx)}">${row.type==='stem'?stemCh:''}</span></td>
+      <td>${stemSub}</td>
+      <td><span class="tg-badge" style="color:${elemColor};border-color:${elemColor}40">${tgName}</span></td>
+      <td style="font-size:.78rem;color:var(--text3)">${tElem(STEMS[row.stemIdx].elem)}</td>
+    </tr>`;
+  }).join('');
+
+  const tengodHTML = `
+    <table class="tengod-table">
+      <thead><tr>
+        <th>${LANG==='ko'?'위치':'Position'}</th>
+        <th>${LANG==='ko'?'글자':'Char'}</th>
+        <th>${LANG==='ko'?'천간':'Stem'}</th>
+        <th>${LANG==='ko'?'십성':'Ten God'}</th>
+        <th>${LANG==='ko'?'오행':'Element'}</th>
+      </tr></thead>
+      <tbody>${tengodRows}</tbody>
+    </table>`;
+
+  // Special Stars
+  const gm = stars.gongmang;
+  const gmBranchNames = gm.map(b => BRANCHES[b].zh + (LANG==='ko'?`(${BRANCHES[b].ko})`:`(${BRANCHES[b].en})`)).join(', ');
+
+  const starDefs = [
+    {key:'dohwa',  title:t('dohwa'),
+     en:'Charm, romance, and social magnetism. Indicates attractiveness and popularity. Strong social connections and artistic appeal.',
+     ko:'매력, 연애, 사회적 인기를 나타냅니다. 타고난 매력과 예술적 감각을 지녔으며, 대인관계가 풍부합니다.',
+     present: stars.dohwa.length > 0, count: stars.dohwa.length},
+    {key:'yeokma', title:t('yeokma'),
+     en:'Movement, travel, and change. Indicates a life full of transitions, opportunities abroad, and dynamic career shifts.',
+     ko:'이동, 여행, 변화를 나타냅니다. 해외 기회나 직업 전환 등 역동적인 삶을 살게 됩니다.',
+     present: stars.yeokma.length > 0, count: stars.yeokma.length},
+    {key:'hwagae', title:t('hwagae'),
+     en:'Spirituality, arts, and solitude. Indicates talent in creative or spiritual fields. May suggest a contemplative or academic life.',
+     ko:'영성, 예술, 고독을 나타냅니다. 창의적·영적 분야의 재능을 시사하며, 학문적이거나 사색적인 삶을 살 수 있습니다.',
+     present: stars.hwagae.length > 0, count: stars.hwagae.length},
+    {key:'gongmang',title:t('gongmang'),
+     en:`Empty Space branches: ${gmBranchNames}. These branches in the chart carry emptied or diminished energy, suggesting areas where outcomes may be incomplete or delayed.`,
+     ko:`공망 지지: ${gmBranchNames}. 이 지지들은 사주에서 비어있는 에너지를 나타내며, 결과가 불완전하거나 지연될 수 있는 영역을 시사합니다.`,
+     present: stars.gongmangPresent.length > 0, count: stars.gongmangPresent.length},
+  ];
+
+  const starsHTML = `<div class="stars-grid">${
+    starDefs.map(sd => `<div class="star-item${sd.present?' star-present':''}">
+      <div class="star-name">${sd.title}${sd.count>0?` ×${sd.count}`:''}</div>
+      <div class="star-info">${LANG==='ko'?sd.ko:sd.en}</div>
+    </div>`).join('')
+  }</div>`;
+
+  // Luck Cycles
+  const currentAge = age;
+  const luckRows = luckData.luckPillars.map(lp => {
+    const s = STEMS[lp.stemIdx], b = BRANCHES[lp.branchIdx];
+    const isCurrent = currentLP && lp.idx === currentLP.idx;
+    const tgStem   = t(getTenGod(dmStemIdx, lp.stemIdx));
+    const tgBranch = t(getTenGod(dmStemIdx, HIDDEN_STEMS[lp.branchIdx].slice(-1)[0]));
+    return `<tr${isCurrent?' class="current"':''}>
+      <td class="luck-age">${isCurrent?`<strong>${t('current')} (${LANG==='ko'?'나이':'age'} ${Math.floor(currentAge)})</strong>`:''}<br>${lp.ageStart.toFixed(0)}–${lp.ageEnd.toFixed(0)}</td>
+      <td><div class="luck-stem elem-${ELEM_CSS[s.elem]}">${s.zh}</div>
+          <div class="luck-sub">${LANG==='ko'?s.ko:s.en}</div>
+          <div class="luck-sub" style="margin-top:2px">${tgStem}</div></td>
+      <td><div class="luck-branch elem-${ELEM_CSS[b.elem]}">${b.zh}</div>
+          <div class="luck-sub">${LANG==='ko'?b.ko:b.en}</div>
+          <div class="luck-sub" style="margin-top:2px">${tgBranch}</div></td>
+      <td style="font-size:.8rem;color:var(--text2)">${tElem(s.elem)}<br>${LANG==='ko'?b.anKo:b.anEn}</td>
+    </tr>`;
+  }).join('');
+
+  const luckHTML = `
+    <div style="margin-bottom:10px;font-size:.82rem;color:var(--text2)">
+      ${t('forward')}: <strong style="color:var(--text)">${luckData.isForward ? (LANG==='ko'?'예':'Yes') : (LANG==='ko'?'아니오':'No')}</strong>
+      &nbsp;·&nbsp; ${t('start-age')}: <strong style="color:var(--gold)">${luckData.startAge.toFixed(1)}</strong>
+      ${LANG==='ko'?' 세부터':' years old'}
+    </div>
+    <div style="overflow-x:auto">
+    <table class="luck-table">
+      <thead><tr>
+        <th>${LANG==='ko'?'나이 범위':'Age Range'}</th>
+        <th>${LANG==='ko'?'천간 (十星)':'Stem (God)'}</th>
+        <th>${LANG==='ko'?'지지 (十星)':'Branch (God)'}</th>
+        <th>${LANG==='ko'?'오행/띠':'Element/Animal'}</th>
+      </tr></thead>
+      <tbody>${luckRows}</tbody>
+    </table>
+    </div>`;
+
+  // Annual luck (next 10 years)
+  const annualRows = [];
+  for (let y = currentYear; y <= currentYear + 10; y++) {
+    // Look up Apr 15 of each year (safely mid-year, always has a year_pillar in CSV)
+    const annRow = getCSVRow(y, 4, 15);
+    const annStemIdx  = annRow ? STEM_IDX[annRow.year_pillar[0]]   : ((y-4)%10+10)%10;
+    const annBranchIdx= annRow ? BRANCH_IDX[annRow.year_pillar[1]] : ((y-4)%12+12)%12;
+    const s = STEMS[annStemIdx], b = BRANCHES[annBranchIdx];
+    const tgS = t(getTenGod(dmStemIdx, annStemIdx));
+    const tgB = t(getTenGod(dmStemIdx, HIDDEN_STEMS[annBranchIdx].slice(-1)[0]));
+    annualRows.push(`<tr>
+      <td style="font-size:.85rem;color:var(--text2)">${y}${y===currentYear?` <span style="color:var(--gold);font-size:.72rem">(${LANG==='ko'?'현재':'now'})</span>`:''}</td>
+      <td><span class="luck-stem elem-${ELEM_CSS[s.elem]}" style="font-size:1.2rem">${s.zh}</span> <span class="luck-sub">${LANG==='ko'?s.ko:s.en}</span></td>
+      <td><span class="luck-branch elem-${ELEM_CSS[b.elem]}" style="font-size:1.2rem">${b.zh}</span> <span class="luck-sub">${LANG==='ko'?b.ko:b.en} (${LANG==='ko'?b.anKo:b.anEn})</span></td>
+      <td style="font-size:.78rem;color:var(--text2)">${tgS} / ${tgB}</td>
+    </tr>`);
+  }
+  const annualHTML = `
+    <div style="overflow-x:auto">
+    <table class="luck-table">
+      <thead><tr>
+        <th>${LANG==='ko'?'연도':'Year'}</th>
+        <th>${LANG==='ko'?'천간 (십성)':'Stem (God)'}</th>
+        <th>${LANG==='ko'?'지지 (십성)':'Branch (God)'}</th>
+        <th>${LANG==='ko'?'십성':'Ten Gods'}</th>
+      </tr></thead>
+      <tbody>${annualRows.join('')}</tbody>
+    </table>
+    </div>`;
+
+  // Assemble tabs
+  const tabsHTML = `
+    <div class="section">
+      <div class="section-title">${LANG==='ko'?'분석 (Analysis)':'Analysis'}</div>
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('tab-overview',this)">${t('s-overview')}</button>
+        <button class="tab-btn" onclick="switchTab('tab-tengod',this)">${t('s-tengod')}</button>
+        <button class="tab-btn" onclick="switchTab('tab-stars',this)">${t('s-stars')}</button>
+        <button class="tab-btn" onclick="switchTab('tab-luck',this)">${t('s-luck')}</button>
+        <button class="tab-btn" onclick="switchTab('tab-annual',this)">${t('s-annual')}</button>
+      </div>
+      <div id="tab-overview" class="tab-panel active">${overviewHTML}</div>
+      <div id="tab-tengod"   class="tab-panel">
+        <p style="font-size:.82rem;color:var(--text2);margin-bottom:12px">
+          ${LANG==='ko'?
+            `일간(日干) ${dm.zh}(${dm.ko})을 기준으로 각 글자와의 십성 관계를 분석합니다.` :
+            `Ten Gods calculated relative to Day Master ${dm.zh} (${dm.en}).`}
+        </p>
+        ${tengodHTML}
+      </div>
+      <div id="tab-stars"    class="tab-panel">${starsHTML}</div>
+      <div id="tab-luck"     class="tab-panel">${luckHTML}</div>
+      <div id="tab-annual"   class="tab-panel">${annualHTML}</div>
+    </div>`;
+
+  chatHistory = [];
+  document.getElementById('result-area').innerHTML = pillarsHTML + tabsHTML + buildChatSection();
+}
+
+function switchTab(tabId, btn) {
+  document.querySelectorAll('.tab-panel').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById(tabId).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ─────────────────────────────────────────────
+// CHAT
+// ─────────────────────────────────────────────
+let chatHistory = [];
+
+function lsGet(key) { try { return localStorage.getItem(key); } catch(e) { return null; } }
+function lsSet(key, val) { try { localStorage.setItem(key, val); } catch(e) {} }
+
+const CHAT_SUGGESTIONS = {
+  en: [
+    'What career paths suit my chart?',
+    'What does my Day Master say about my personality?',
+    'What should I watch out for in my current luck cycle?',
+    'What type of partner is most compatible with me?',
+    'Which element should I cultivate most?',
+  ],
+  ko: [
+    '제 사주에 맞는 직업은 무엇인가요?',
+    '제 일간이 말하는 성격과 강점은 무엇인가요?',
+    '현재 대운에서 주의할 점이 있나요?',
+    '저와 잘 맞는 파트너 유형은 무엇인가요?',
+    '어떤 오행을 키워야 균형이 잡히나요?',
+  ],
+};
+
+function buildChatSection() {
+  const sugs = CHAT_SUGGESTIONS[LANG].map(q =>
+    `<button class="chat-sug" onclick="useSuggestion(this)">${q}</button>`
+  ).join('');
+
+  const savedKey = lsGet('saju_api_key') || '';
+  const notice = LANG === 'ko'
+    ? '🔑 API 키는 브라우저 로컬 저장소에만 저장되며 Anthropic 서버로만 전송됩니다.'
+    : '🔑 Your API key is saved only in your browser\'s localStorage and sent only to Anthropic.';
+  const placeholder = LANG === 'ko' ? '사주에 대해 질문하세요...' : 'Ask anything about your saju chart...';
+  const sendLabel  = LANG === 'ko' ? '질문하기' : 'Ask';
+  const title      = LANG === 'ko' ? '사주 AI 상담 · Ask Your Saju' : 'Ask About Your Saju · AI Consultation';
+  const keyLabel   = LANG === 'ko' ? 'Anthropic API 키:' : 'Anthropic API Key:';
+
+  return `
+  <div class="section chat-wrap">
+    <div class="section-title">${title}</div>
+    <div class="chat-api-row">
+      <label>${keyLabel}</label>
+      <input class="chat-api-input" id="chat-api-key" type="password"
+        placeholder="sk-ant-..." value="${savedKey}"
+        oninput="if(this.value.trim())lsSet('saju_api_key',this.value.trim())">
+    </div>
+    <p class="chat-notice">${notice}</p>
+    <div class="chat-suggestions">${sugs}</div>
+    <div class="chat-messages" id="chat-messages"></div>
+    <div class="chat-input-row">
+      <input class="chat-input" id="chat-question" type="text"
+        placeholder="${placeholder}"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();askQuestion()}">
+      <button class="chat-send-btn" id="chat-send-btn" onclick="askQuestion()">${sendLabel}</button>
+    </div>
+  </div>`;
+}
+
+function useSuggestion(btn) {
+  const inp = document.getElementById('chat-question');
+  if (inp) { inp.value = btn.textContent; inp.focus(); }
+}
+
+function buildSajuContext(res) {
+  const {pillars, elemCounts, strength, luckData, currentLP, year, month, day, hour, minute, gender} = res;
+  const dm = STEMS[pillars.day.s];
+  const elemNames = ['Wood','Fire','Earth','Metal','Water'];
+  const fmt = (p) => `${STEMS[p.s].zh}${STEMS[p.s].en}/${BRANCHES[p.b].zh}${BRANCHES[p.b].en}(${BRANCHES[p.b].anEn})`;
+  const currentLPStr = currentLP
+    ? `${STEMS[currentLP.stemIdx].zh}${BRANCHES[currentLP.branchIdx].zh} (ages ${Math.floor(currentLP.ageStart)}–${Math.floor(currentLP.ageEnd)})`
+    : 'Not yet started';
+
+  const tengodList = [
+    {pos:'Year Stem',    s: pillars.year.s},
+    {pos:'Year Branch',  s: HIDDEN_STEMS[pillars.year.b].slice(-1)[0]},
+    {pos:'Month Stem',   s: pillars.month.s},
+    {pos:'Month Branch', s: HIDDEN_STEMS[pillars.month.b].slice(-1)[0]},
+    {pos:'Day Branch',   s: HIDDEN_STEMS[pillars.day.b].slice(-1)[0]},
+    {pos:'Hour Stem',    s: pillars.hour.s},
+    {pos:'Hour Branch',  s: HIDDEN_STEMS[pillars.hour.b].slice(-1)[0]},
+  ].map(({pos,s}) => `${pos}: ${STEMS[s].zh}(${getTenGod(pillars.day.s, s)})`).join(' | ');
+
+  const usefulEls = getUsefulElement(pillars, strength).map(e => elemNames[e]).join(', ');
+  const gm = getGongMang(pillars.day.cycleIdx);
+  const gmStr = gm.map(b => BRANCHES[b].zh + BRANCHES[b].en).join(', ');
+
+  return `
+BAZI/SAJU CHART
+Birth: ${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')} ${String(hour).padStart(2,'0')}:${String(minute).padStart(2,'0')} | Gender: ${gender==='M'?'Male':'Female'}
+
+FOUR PILLARS:
+  Year  Pillar : ${fmt(pillars.year)}
+  Month Pillar : ${fmt(pillars.month)}
+  Day   Pillar : ${fmt(pillars.day)}  ← DAY MASTER (Self)
+  Hour  Pillar : ${fmt(pillars.hour)}
+
+DAY MASTER: ${dm.zh} (${dm.en}) · ${elemNames[dm.elem]} · ${dm.yy===1?'Yang':'Yin'}
+STRENGTH: ${strength.toUpperCase()} (${strength==='strong'?'身强':strength==='weak'?'身弱':'中和'})
+USEFUL ELEMENT (用神): ${usefulEls}
+ZODIAC ANIMAL: ${BRANCHES[pillars.year.b].anEn}
+
+FIVE ELEMENTS: ${elemCounts.map((c,i)=>`${elemNames[i]}:${c.toFixed(1)}`).join(' | ')}
+
+TEN GODS: ${tengodList}
+
+HIDDEN STEMS (地藏干):
+  Year  ${BRANCHES[pillars.year.b].zh}: ${HIDDEN_STEMS[pillars.year.b].map(i=>STEMS[i].zh).join(' ')}
+  Month ${BRANCHES[pillars.month.b].zh}: ${HIDDEN_STEMS[pillars.month.b].map(i=>STEMS[i].zh).join(' ')}
+  Day   ${BRANCHES[pillars.day.b].zh}: ${HIDDEN_STEMS[pillars.day.b].map(i=>STEMS[i].zh).join(' ')}
+  Hour  ${BRANCHES[pillars.hour.b].zh}: ${HIDDEN_STEMS[pillars.hour.b].map(i=>STEMS[i].zh).join(' ')}
+
+LUCK CYCLES (大運): ${luckData.isForward?'Forward (順行)':'Reverse (逆行)'} · Starts age ${luckData.startAge.toFixed(1)}
+  ${luckData.luckPillars.map(lp=>`${STEMS[lp.stemIdx].zh}${BRANCHES[lp.branchIdx].zh}(${Math.floor(lp.ageStart)}-${Math.floor(lp.ageEnd)})`).join(' ')}
+  Current: ${currentLPStr}
+
+EMPTY SPACE (空亡): ${gmStr}
+`.trim();
+}
+
+function addChatMessage(role, text, isLoading = false) {
+  const container = document.getElementById('chat-messages');
+  if (!container) return null;
+  const div = document.createElement('div');
+  div.className = `chat-msg chat-${role}${isLoading ? ' chat-loading' : ''}`;
+  const inner = isLoading
+    ? `<span class="chat-dots"><span>•</span><span>•</span><span>•</span></span>`
+    : escapeForChat(text);
+  div.innerHTML = `<div class="chat-bubble"><div class="chat-text">${inner}</div></div>`;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+  return div;
+}
+
+function escapeForChat(text) {
+  return text
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\n\n/g,'</p><p>').replace(/\n/g,'<br>')
+    .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
+    .replace(/__(.*?)__/g,'<em>$1</em>');
+}
+
+async function askQuestion() {
+  if (!window._lastResult) return;
+
+  const questionInput = document.getElementById('chat-question');
+  const sendBtn       = document.getElementById('chat-send-btn');
+  const question = questionInput.value.trim();
+  if (!question) return;
+
+  const apiKey = (document.getElementById('chat-api-key').value.trim())
+              || lsGet('saju_api_key') || '';
+  if (!apiKey) {
+    addChatMessage('system-msg', LANG==='ko'
+      ? '위의 입력란에 Anthropic API 키를 입력해주세요.'
+      : 'Please enter your Anthropic API key in the field above.');
+    return;
+  }
+  lsSet('saju_api_key', apiKey);
+
+  addChatMessage('user', question);
+  questionInput.value = '';
+  sendBtn.disabled = true;
+
+  chatHistory.push({role:'user', content: question});
+  const loadingEl = addChatMessage('assistant', null, true);
+
+  const sajuContext = buildSajuContext(window._lastResult);
+  const langInstruction = LANG === 'ko'
+    ? 'Always respond in Korean (한국어). Use appropriate honorifics.'
+    : 'Always respond in English.';
+
+  const systemPrompt =
+    `You are an expert BaZi (四柱八字) and SaJu (사주팔자) astrologer with deep knowledge of Chinese and Korean Four Pillars of Destiny. ` +
+    `Answer the user's questions based specifically on their chart data below. Be insightful, warm, and concrete — reference actual stems, branches, elements, and ten gods from their chart. ${langInstruction}\n\n` +
+    sajuContext;
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-allow-browser': 'true',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1024,
+        system: systemPrompt,
+        messages: chatHistory,
+      }),
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({error:{message:`HTTP ${response.status}`}}));
+      throw new Error(err.error?.message || `HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+    const answer = data.content[0].text;
+    chatHistory.push({role:'assistant', content: answer});
+
+    if (loadingEl) {
+      loadingEl.classList.remove('chat-loading');
+      loadingEl.querySelector('.chat-text').innerHTML = `<p>${escapeForChat(answer)}</p>`;
+    }
+  } catch (err) {
+    chatHistory.pop();
+    if (loadingEl) loadingEl.remove();
+    addChatMessage('system-msg', `${LANG==='ko'?'오류':'Error'}: ${err.message}`);
+  } finally {
+    sendBtn.disabled = false;
+    questionInput.focus();
+  }
+}
+
+// ─────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  // Trigger a default calculation for demo
+  // calculate();
+});
+</script>
+</body>
+</html>
