@@ -1107,10 +1107,582 @@ function renderPillar(p, label, isDayMaster, dmStemIdx) {
   </div>`;
 }
 
+// ─────────────────────────────────────────────
+// LIFE AREA ANALYSIS
+// ─────────────────────────────────────────────
+function chartTenGodCounts(pillars, dmStemIdx) {
+  const counts = {};
+  const stems = [
+    pillars.year.s, pillars.month.s, pillars.hour.s,
+    ...HIDDEN_STEMS[pillars.year.b],
+    ...HIDDEN_STEMS[pillars.month.b],
+    ...HIDDEN_STEMS[pillars.day.b],
+    ...HIDDEN_STEMS[pillars.hour.b],
+  ];
+  for (const si of stems) {
+    const tg = getTenGod(dmStemIdx, si);
+    counts[tg] = (counts[tg] || 0) + 1;
+  }
+  return counts;
+}
+
+function lifeCard(title, body) {
+  return `<div class="analysis-card"><h4>${title}</h4><p>${body}</p></div>`;
+}
+function wideCard(title, items) {
+  return `<div class="analysis-card" style="grid-column:1/-1"><h4>${title}</h4>
+    <ul style="margin:0;padding-left:18px;color:var(--text2);font-size:.88rem;line-height:2">
+      ${items.map(i=>`<li>${i}</li>`).join('')}
+    </ul></div>`;
+}
+
+function buildWealthHTML(res, tgCounts) {
+  const ko = LANG === 'ko';
+  const {pillars, strength, usefulEl} = res;
+  const dmStemIdx = pillars.day.s;
+  const dm = STEMS[dmStemIdx];
+  const dw = tgCounts['zhengcai'] || 0;
+  const sw = tgCounts['piancai']  || 0;
+  const rw = tgCounts['jiecai']   || 0;
+  const outputStars = (tgCounts['shishen'] || 0) + (tgCounts['shangguan'] || 0);
+  const sealStars   = (tgCounts['zhengyin'] || 0) + (tgCounts['pianyin']  || 0);
+  const wealthElem  = CONTROLS[dm.elem];
+  const wealthElemName = tElem(wealthElem);
+
+  // Card 1 – Wealth Stars Overview
+  let wOverview;
+  if (dw === 0 && sw === 0) {
+    wOverview = ko
+      ? `차트에 재성(정재·편재)이 보이지 않습니다. 재물이 없다는 뜻이 아니라, 재물을 얻기 위해 더 많은 노력과 전략이 필요하다는 신호입니다. 재성이 없으면 오히려 도식·상관 등 출력성을 통해 기술이나 창의성으로 부를 창출하는 경우가 많습니다. 현재 대운이나 세운에서 재성이 들어오는 시기를 적극 활용하세요.`
+      : `Your chart shows no visible Wealth stars (Direct or Indirect Wealth). This does not mean you cannot accumulate wealth — rather, it signals that wealth must be actively pursued through strategy and effort rather than coming naturally. People without chart Wealth stars often build prosperity through Output stars (skills, creativity). Pay close attention to years or luck cycles when Wealth elements enter your chart.`;
+  } else if (dw >= 2 && sw <= 1) {
+    wOverview = ko
+      ? `정재(直財)가 ${dw}개로 두드러집니다. 정재는 꾸준한 월급·임대 수입·저축처럼 안정적이고 예측 가능한 수입을 상징합니다. 규칙적인 재물 흐름을 잘 관리하면 장기적으로 탄탄한 자산을 쌓을 수 있습니다. 지나친 보수성은 기회를 놓칠 수 있으니, 안정 속에서도 적절한 투자 감각을 키우세요.`
+      : `Direct Wealth (正財) appears ${dw} times, making stable, predictable income your natural money style. This mirrors salary, rental income, and steady savings — you accumulate through patience and reliability. Strong Direct Wealth people excel at budgeting and long-term asset building. Guard against excessive conservatism that causes you to miss growth opportunities.`;
+  } else if (sw >= 2 && dw <= 1) {
+    wOverview = ko
+      ? `편재(偏財)가 ${sw}개로 강합니다. 편재는 사업 소득·투자·부동산 등 유동적이고 역동적인 부를 상징합니다. 재물이 들어오고 나가는 흐름이 빠르며, 대범한 기회 포착 능력이 탁월합니다. 다만 과도한 투기나 충동적 지출에 주의해야 하며, 수입 변동에 대비한 비상금을 확보해 두는 것이 중요합니다.`
+      : `Indirect Wealth (偏財) appears ${sw} times, pointing to dynamic, entrepreneurial wealth energy. Your money often comes through business, investment, real estate, or windfalls rather than fixed salary. You have a natural talent for spotting and seizing financial opportunities. Be mindful of impulsive spending and speculative risk; maintain an emergency fund to smooth income volatility.`;
+  } else {
+    wOverview = ko
+      ? `정재(${dw}개)와 편재(${sw}개)가 함께 있어 안정적 수입과 기회 소득 두 가지 채널을 모두 갖추고 있습니다. 정재는 고정 수입·저축, 편재는 투자·사업 기회로 균형 잡힌 재물 구조입니다. 두 채널을 병행 운영하면 수입의 안정성과 성장 잠재력을 동시에 누릴 수 있습니다.`
+      : `Your chart contains both Direct Wealth (${dw}) and Indirect Wealth (${sw}), giving you a balanced financial profile with dual income channels. Direct Wealth supports stable income and savings; Indirect Wealth opens entrepreneurial and investment avenues. Operating both channels simultaneously lets you enjoy financial security while maintaining growth potential.`;
+  }
+
+  // Card 2 – Wealth Capacity
+  let wCapacity;
+  if (strength === 'strong') {
+    wCapacity = ko
+      ? `일간이 강한(신강) 사주로, 재성을 통제하고 관리할 능력이 충분합니다. 강한 일간은 재물을 안정적으로 붙들고 불릴 수 있으며, 큰 금액의 자금 운용도 감당할 수 있습니다. 재성 운이 들어오는 시기에 적극적인 투자나 사업 확장을 고려해 볼 수 있습니다. 용신(${usefulEl.map(i=>tElem(i)).join('·')}) 오행과 관련된 분야에서 재물 기회가 큽니다.`
+      : `Your Day Master is strong (身强), giving you ample capacity to control and manage wealth energy. A strong DM can hold onto money, handle large sums, and sustain wealth over time. You can afford to be proactive when Wealth luck cycles arrive. Look for financial opportunities linked to your useful elements: ${usefulEl.map(i=>tElem(i)).join(', ')}.`;
+  } else if (strength === 'weak') {
+    wCapacity = ko
+      ? `일간이 약한(신약) 사주로, 재성이 너무 강하면 오히려 부담이 될 수 있습니다. 신약 일간은 재물을 관리할 체력이 부족하여 큰 재물이 들어와도 유지하기 어려울 수 있습니다. 이럴 때는 인성(印星)이나 비겁(比劫)의 도움을 받아 일간을 먼저 강화하는 것이 중요합니다. 용신(${usefulEl.map(i=>tElem(i)).join('·')}) 오행을 생활 속에서 보완하면 재물 운이 개선됩니다.`
+      : `Your Day Master is weak (身弱), meaning excessive Wealth energy can become a burden rather than a benefit. A weak DM may struggle to retain large sums and can feel overwhelmed by financial responsibility. Strengthening the DM through Resource (印星) or Companion (比劫) stars is the priority. Supporting useful elements (${usefulEl.map(i=>tElem(i)).join(', ')}) in daily life improves your wealth-holding capacity.`;
+  } else {
+    wCapacity = ko
+      ? `일간이 중화(中和)에 가까운 사주로, 재물 운이 균형 잡혀 있습니다. 특정 오행이 지나치게 강하거나 약하지 않아 재성 에너지를 비교적 안정적으로 다룰 수 있습니다. 용신(${usefulEl.map(i=>tElem(i)).join('·')}) 방향을 유지하면 꾸준한 재물 흐름을 기대할 수 있습니다.`
+      : `Your Day Master is near equilibrium (中和), providing a stable platform for managing wealth. Neither excessively strong nor weak, you can handle Wealth energy relatively well. Maintaining alignment with your useful elements (${usefulEl.map(i=>tElem(i)).join(', ')}) supports a steady financial flow.`;
+  }
+
+  // Card 3 – Income Path
+  let wIncome;
+  if (outputStars >= 2) {
+    wIncome = ko
+      ? `식신·상관(出力星)이 ${outputStars}개로 강합니다. 이는 재물이 기술·창의성·지식을 통해 들어온다는 신호입니다. 프리랜서, 컨설팅, 크리에이티브 직종, 강의, 사업 등 자신의 능력을 직접 판매하는 방식으로 수입을 극대화할 수 있습니다. 강한 출력성은 재성을 직접 생(生)하므로, 꾸준히 기술과 전문성을 개발하는 것이 최고의 재물 전략입니다.`
+      : `With ${outputStars} Output stars (Eating God + Hurting Officer), wealth flows to you through skills, creativity, and knowledge. Freelancing, consulting, creative work, teaching, or running your own business maximizes your earning potential. Output stars directly generate Wealth, so investing in your expertise and capabilities is your most powerful financial strategy.`;
+  } else if (sealStars >= 2) {
+    wIncome = ko
+      ? `인성(印星)이 ${sealStars}개로 강합니다. 자격증·학위·사회적 평판과 신뢰가 재물 창출의 핵심 경로입니다. 전문직 자격증 취득, 학문적 권위, 조직 내 신망 등을 통해 안정적이고 지속 가능한 수입을 만들 수 있습니다. 다만 인성이 과도하면 식신을 극하므로, 이론보다 실행에 무게를 두는 균형이 필요합니다.`
+      : `With ${sealStars} Resource stars (Seal/Indirect Seal), your wealth comes through credentials, reputation, and institutional trust. Professional licenses, academic standing, and organizational prestige are your primary income drivers. Stable, respectable employment or advisory roles suit you well. Watch that excessive Resource energy doesn't suppress your Output stars and creativity.`;
+  } else {
+    wIncome = ko
+      ? `차트의 출력성과 인성이 균형을 이루고 있어, 기술 기반 수입과 신뢰·평판 기반 수입을 함께 활용할 수 있는 구조입니다. 특정 분야에 지나치게 집중하기보다 다양한 수입 채널을 병행하면 재물 흐름이 안정됩니다. 재성 원소(${wealthElemName})가 들어오는 대운·세운에 적극적으로 기회를 잡으세요.`
+      : `Your Output and Resource stars are relatively balanced, allowing you to earn through both skills and reputation. Diversifying income channels rather than relying on a single source will stabilize your financial flow. Actively pursue opportunities when the Wealth element (${wealthElemName}) appears in your luck cycles or annual charts.`;
+  }
+
+  // Card 4 – Wealth Strategy (wide)
+  const stratItems = ko ? [
+    `재물 원소인 <strong>${wealthElemName}</strong>이 강한 해(세운)나 대운에 재물 기회가 집중됩니다. 이 시기에 투자·사업 계획을 집중하세요.`,
+    rw >= 2
+      ? `겁재가 ${rw}개로 강합니다. 동업이나 공동 투자는 세심하게 계약서를 작성하고, 재물 관련 보증은 가급적 피하세요.`
+      : `겁재가 적으므로 재물 손실 위험이 상대적으로 낮지만, 인간관계에서 금전 보증은 항상 주의하세요.`,
+    strength === 'weak'
+      ? `신약 사주이므로 재물보다 일간 강화를 먼저 해야 합니다. 무리한 투자나 대출 확장보다 기본기를 탄탄히 다지세요.`
+      : `신강 사주이므로 재성 운이 오는 시기에 과감한 투자와 사업 확장을 적극 고려할 수 있습니다.`,
+    dw >= sw
+      ? `정재 위주의 사주이므로 부동산·적금·장기투자 등 안정적 자산 증식 전략이 적합합니다.`
+      : `편재 위주의 사주이므로 사업·투자·다각화 전략이 재물 성장에 더 효과적입니다.`,
+    `재물을 지키는 가장 확실한 방법은 출력성을 통한 전문성 개발입니다. 꾸준히 기술과 지식에 투자하세요.`,
+  ] : [
+    `Wealth opportunities concentrate in years or luck cycles when the Wealth element (${wealthElemName}) is prominent. Time major investments and business moves around these periods.`,
+    rw >= 2
+      ? `Rob Wealth (겁재) appears ${rw} times — partnerships and joint ventures carry elevated risk of financial loss. Draft thorough contracts and avoid acting as guarantor for others' debts.`
+      : `Rob Wealth is relatively low, reducing the risk of financial drain through others. Still exercise caution with monetary guarantees in personal relationships.`,
+    strength === 'weak'
+      ? `Your DM is weak — shore up your foundation before aggressively pursuing wealth. Over-leveraging or excessive debt can overwhelm your capacity to manage money effectively.`
+      : `Your DM is strong — be proactive when Wealth luck cycles arrive. You have the capacity to manage larger sums and take on bigger financial ventures.`,
+    dw >= sw
+      ? `With more Direct Wealth, stable asset accumulation strategies (real estate, bonds, long-term savings) align well with your natural money style.`
+      : `With more Indirect Wealth, dynamic strategies (entrepreneurship, trading, diversified investments) tend to generate better returns for your chart type.`,
+    `The most reliable wealth strategy is investing in your Output stars — skills, creativity, and expertise. The more you produce, the more Wealth follows.`,
+  ];
+
+  return `<div class="analysis-grid">
+    ${lifeCard(ko ? '재성(財星) 개요' : 'Wealth Stars Overview', wOverview)}
+    ${lifeCard(ko ? '재물 수용력' : 'Wealth Capacity', wCapacity)}
+    ${lifeCard(ko ? '수입 경로' : 'Income Path', wIncome)}
+    ${wideCard(ko ? '재물 전략' : 'Wealth Strategy', stratItems)}
+  </div>`;
+}
+
+function buildCareerHTML(res, tgCounts) {
+  const ko = LANG === 'ko';
+  const {pillars, strength, usefulEl} = res;
+  const dmStemIdx = pillars.day.s;
+  const dm = STEMS[dmStemIdx];
+  const dguan = tgCounts['zhengguan'] || 0;
+  const pguan = tgCounts['qisha']     || 0;
+  const ssh   = tgCounts['shishen']   || 0;
+  const sguan = tgCounts['shangguan'] || 0;
+  const totalOfficer = dguan + pguan;
+  const totalOutput  = ssh + sguan;
+
+  // Card 1 – Career Stars
+  let cStars;
+  if (dguan >= 2 && pguan === 0) {
+    cStars = ko
+      ? `정관(正官)이 ${dguan}개로 두드러집니다. 정관은 규칙·권위·책임을 상징하며, 공직·대기업·제도권 안에서 안정적으로 성장하는 유형입니다. 체계적이고 윤리적인 방식으로 커리어를 쌓으며 단계적 승진에 능합니다. 상사나 조직 규범을 존중하는 태도가 경력의 자산이 됩니다.`
+      : `Direct Officer (正官) appears ${dguan} times — you thrive in structured, rules-based environments such as government, large corporations, or established institutions. You build a career through steady, ethical advancement and step-by-step promotion. Your respect for hierarchy and organizational norms becomes a genuine career asset over time.`;
+  } else if (pguan >= 2 && dguan === 0) {
+    cStars = ko
+      ? `편관(偏官/七殺)이 ${pguan}개로 강합니다. 칠살은 강한 압박과 투지를 상징하며, 이를 잘 제어하면 탁월한 리더십과 추진력으로 변환됩니다. 군·경찰·외과·법조·스포츠·창업 등 경쟁이 치열하고 도전적인 분야에서 두각을 나타냅니다. 칠살을 식신이나 인성으로 제어하는지 여부가 성공의 관건입니다.`
+      : `Seven Kills (七殺/偏官) appears ${pguan} times — this represents intense drive and competitive energy that, when properly channeled, produces outstanding leadership and execution power. You excel in high-pressure, competitive fields such as military, law enforcement, surgery, law, competitive sports, or entrepreneurship. The key is channeling this fierce energy through discipline and structure.`;
+  } else if (totalOfficer === 0 && totalOutput >= 2) {
+    cStars = ko
+      ? `관성(官星)이 없고 식신·상관이 ${totalOutput}개로 강합니다. 이는 전통적 직장 구조보다 창의성·기술·자유로운 환경에서 더 큰 성취를 이루는 유형입니다. 프리랜서, 창업, 예술, 컨설팅 등 자신의 역량을 직접 발휘하는 분야에서 빛납니다. 조직의 제약보다 독립적인 판단과 창의적 접근이 성공의 핵심입니다.`
+      : `Officer stars are absent while Output stars (${totalOutput} total) are strong — you are naturally suited to creative, skill-driven, and self-directed work rather than hierarchical employment. Freelancing, entrepreneurship, the arts, consulting, and technical expertise are your career sweet spots. Independence and creative freedom are prerequisites for your professional fulfillment.`;
+  } else if (totalOfficer >= 1 && totalOutput >= 2) {
+    cStars = ko
+      ? `관성(${totalOfficer}개)과 출력성(${totalOutput}개)이 함께 존재합니다. 이는 조직 내에서도 창의성을 발휘하거나, 기술·전문성을 갖추고 관리자 역할을 병행하는 복합적 커리어 구조입니다. 전문직 관리자, 기술 리더, 창의적 프로젝트 매니저 등의 포지션이 이상적입니다.`
+      : `Officer stars (${totalOfficer}) and Output stars (${totalOutput}) coexist in your chart — a combination pointing to a hybrid career profile. You can lead within organizations while exercising creativity and expertise. Technical managers, creative directors, specialist team leads, or entrepreneurial executives are ideal roles for this configuration.`;
+  } else {
+    cStars = ko
+      ? `관성과 출력성이 균형을 이루는 구조입니다. 특정 커리어 유형에 강하게 집중되기보다, 다양한 환경에서 적응력 있게 성과를 낼 수 있는 유연한 직업 에너지를 가지고 있습니다. 현재 대운이나 세운의 십성 구성을 참고해 커리어 방향을 조정하세요.`
+      : `Your career stars are relatively balanced, giving you a flexible professional profile adaptable to both structured and creative environments. Rather than a single dominant career archetype, you can excel across varied roles. Consult your current luck cycle's Ten Gods for directional guidance.`;
+  }
+
+  // Card 2 – Work Style
+  const workStyles = [
+    ko
+      ? `목(木) 일간인 당신은 성장 지향적이고 인도주의적인 직업 스타일을 가집니다. 새로운 아이디어를 발전시키고 팀원을 육성하는 데 탁월하며, 명분과 가치가 있는 일에 헌신합니다. 유연하고 진취적이지만 때로는 지나친 이상주의로 현실적 제약을 간과할 수 있습니다. 조직 내에서 멘토·기획·교육 역할에서 최고의 성과를 냅니다.`
+      : `As a Wood Day Master, you are growth-oriented and people-driven in your work style. You excel at nurturing ideas and developing team members, thriving when your work carries clear purpose and values. Creative, visionary, and idealistic — guard against overlooking practical constraints. You perform best in mentoring, planning, and education-related roles within organizations.`,
+    ko
+      ? `화(火) 일간인 당신은 열정적이고 표현력이 강하며 사람을 사로잡는 에너지를 가집니다. 발표·영업·리더십·엔터테인먼트처럼 존재감을 드러낼 수 있는 일에서 탁월합니다. 빠른 결정과 강한 추진력이 장점이지만, 지속적인 집중력 유지가 도전 과제입니다. 팀의 동기를 불러일으키는 리더·스피커·크리에이티브 디렉터 역할이 이상적입니다.`
+      : `As a Fire Day Master, you bring passionate, expressive, and charismatic energy to your work. You shine in roles that let you be visible — presentations, sales, leadership, entertainment, and public-facing positions. Your decisiveness and drive are major strengths, though sustaining long-term focus can be a challenge. Motivational leadership, public speaking, and creative direction are your natural career zones.`,
+    ko
+      ? `토(土) 일간인 당신은 안정적이고 신뢰할 수 있으며 실용적인 직업 스타일을 가집니다. 조직의 중심을 잡는 역할, 갈등 중재, 장기 프로젝트 관리에서 두각을 나타냅니다. 성실함과 균형 감각이 뛰어나지만 변화에 느리게 적응하는 경향이 있습니다. 관리·행정·부동산·금융·중재 관련 직종에서 특히 안정적인 성과를 냅니다.`
+      : `As an Earth Day Master, your work style is steady, reliable, and pragmatic. You excel at holding organizations together — mediation, long-term project management, and administrative coordination are your strengths. Your conscientiousness and sense of balance are assets, though you may resist rapid change. Management, administration, real estate, finance, and arbitration roles suit you especially well.`,
+    ko
+      ? `금(金) 일간인 당신은 원칙적이고 분석적이며 품질에 집착하는 직업 스타일을 가집니다. 정밀함이 요구되는 업무, 법·규정 준수, 비판적 분석에서 탁월합니다. 높은 기준을 유지하고 타협하지 않는 강직함이 장점이지만 때로는 유연성 부족으로 협업에 어려움을 겪을 수 있습니다. 법률·재무·엔지니어링·품질관리·의료 분야가 적합합니다.`
+      : `As a Metal Day Master, you are principled, analytical, and quality-focused in your professional approach. You excel where precision matters — legal compliance, critical analysis, technical engineering, and quality assurance. Your high standards and unwavering integrity are career strengths, though excessive rigidity may create friction in collaborative settings. Law, finance, engineering, quality control, and medicine are natural fits.`,
+    ko
+      ? `수(水) 일간인 당신은 적응력이 뛰어나고 지적 호기심이 강하며 흐름을 읽는 감각이 탁월합니다. 정보 수집·분석·전략 수립, 그리고 변화하는 환경에서 유연하게 대응하는 능력이 뛰어납니다. 다양한 아이디어를 통합하는 데 탁월하지만 때로는 분산된 에너지로 집중력이 부족해질 수 있습니다. 연구·전략·컨설팅·IT·미디어 분야에서 두각을 나타냅니다.`
+      : `As a Water Day Master, you are highly adaptable, intellectually curious, and naturally skilled at reading situations and trends. Information gathering, strategic analysis, and thriving under changing conditions are your professional hallmarks. You excel at synthesizing diverse ideas, though scattered energy can sometimes undermine focus. Research, strategy, consulting, IT, and media are your strongest career territories.`,
+  ];
+  const wStyle = workStyles[dm.elem] || workStyles[0];
+
+  // Card 3 – Recommended Fields
+  const fieldSets = [
+    // Wood
+    ko
+      ? ['교육·학원·강의', '환경·생태·산림', '의료·한방·약학', '출판·미디어·저널리즘', '패션·섬유·목재 산업', '사회복지·상담·NGO', '스타트업·기획·마케팅', '농업·원예']
+      : ['Education & academia', 'Environmental science & ecology', 'Healthcare & traditional medicine', 'Publishing, media & journalism', 'Fashion, textiles & wood industries', 'Social work, counseling & NGOs', 'Start-ups, planning & marketing', 'Agriculture & horticulture'],
+    // Fire
+    ko
+      ? ['엔터테인먼트·방송·연예', '영업·마케팅·PR', '식음료·요식업', '에너지·발전·전기', '패션·뷰티·조명', '강연·코칭·동기부여', '스포츠·피트니스', '사진·영상·예술']
+      : ['Entertainment, broadcasting & performing arts', 'Sales, marketing & public relations', 'Food & beverage industry', 'Energy, utilities & electronics', 'Fashion, beauty & lighting', 'Speaking, coaching & motivational roles', 'Sports & fitness', 'Photography, film & visual arts'],
+    // Earth
+    ko
+      ? ['부동산·건설·인테리어', '금융·보험·자산관리', '행정·공무원·관리직', '농업·식품·유통', '의료·요양·복지시설', '중재·HR·조직관리', '도예·도자·건축 재료', '교육행정·학교 운영']
+      : ['Real estate, construction & interior design', 'Finance, insurance & asset management', 'Public administration & management', 'Agriculture, food production & distribution', 'Healthcare facilities & elder care', 'HR, mediation & organizational management', 'Ceramics, building materials', 'Educational administration'],
+    // Metal
+    ko
+      ? ['법률·검찰·법무', '의료·외과·치과', '금융·회계·세무', '엔지니어링·제조·정밀기계', '군·경찰·보안', 'IT 인프라·네트워크', '귀금속·광업·철강', '품질관리·감사·컴플라이언스']
+      : ['Law, prosecution & legal services', 'Medicine, surgery & dentistry', 'Finance, accounting & taxation', 'Engineering, manufacturing & precision machinery', 'Military, law enforcement & security', 'IT infrastructure & networking', 'Precious metals, mining & steel', 'Quality control, auditing & compliance'],
+    // Water
+    ko
+      ? ['IT·소프트웨어·AI', '연구·학문·통계', '무역·물류·해운', '금융·투자·트레이딩', '심리학·상담·코칭', '미디어·저널리즘·작가', '관광·여행·호텔', '수산업·해양']
+      : ['IT, software & artificial intelligence', 'Research, academia & statistics', 'International trade, logistics & shipping', 'Finance, investment & trading', 'Psychology, counseling & coaching', 'Media, journalism & writing', 'Tourism, travel & hospitality', 'Marine & aquatic industries'],
+  ];
+  const fields = fieldSets[dm.elem] || fieldSets[0];
+  const cFields = ko
+    ? `일간 오행(${tElem(dm.elem)})에 기반한 적성 직종:`
+    : `Recommended career fields based on your Day Master element (${tElem(dm.elem)}):`;
+
+  // Card 4 – Career Strategy (wide)
+  const cStratItems = ko ? [
+    totalOfficer === 0
+      ? `관성이 없으므로 전통적 직장 구조보다 프리랜서·창업·전문직 등 자율성이 높은 경로를 적극 고려하세요.`
+      : `관성이 있으므로 조직 내 경력 개발과 단계적 승진 전략이 효과적입니다. 상사와의 관계 관리에 신경 쓰세요.`,
+    pguan >= 2
+      ? `칠살이 강하므로 강한 압박과 경쟁을 오히려 성장 동력으로 전환하세요. 식신이나 인성으로 칠살을 제어하는 구조가 성공의 핵심입니다.`
+      : `관성이 안정적이므로 꾸준한 노력과 전문성 축적이 장기 커리어의 기반이 됩니다.`,
+    `용신(${usefulEl.map(i=>tElem(i)).join('·')}) 오행과 관련된 업종이나 환경에서 커리어 기회가 집중됩니다.`,
+    totalOutput >= 2
+      ? `식신·상관이 강하므로 자신의 기술과 창의성을 직접 수익화하는 구조를 만드세요. 부업·프리랜싱·지식 콘텐츠 등이 효과적입니다.`
+      : `인성 에너지가 있다면 자격증·학위·전문 교육에 투자해 커리어 레버리지를 높이세요.`,
+    `커리어의 최적 전환 시기는 관성 또는 출력성 원소가 들어오는 대운·세운입니다. 연간 운세 탭에서 확인하세요.`,
+  ] : [
+    totalOfficer === 0
+      ? `Without Officer stars, prioritize autonomous career paths — freelancing, entrepreneurship, or specialized professions — over traditional employment hierarchies.`
+      : `Officer stars in your chart favor organizational career development. Cultivate relationships with superiors and focus on steady advancement within established structures.`,
+    pguan >= 2
+      ? `Strong Seven Kills demands disciplined channeling of competitive energy. Use Eating God or Resource stars to control this intensity and convert it into decisive leadership.`
+      : `Your Officer energy is stable — consistent effort and expertise accumulation are the bedrock of your long-term career trajectory.`,
+    `Career opportunities concentrate in industries and environments aligned with your useful elements: ${usefulEl.map(i=>tElem(i)).join(', ')}.`,
+    totalOutput >= 2
+      ? `Strong Output stars mean your talents and creativity are marketable. Build systems to directly monetize your skills — consulting, content creation, freelancing, and side ventures are natural channels.`
+      : `If you have Resource energy, investing in certifications, advanced degrees, and professional training amplifies your career leverage and institutional standing.`,
+    `The best timing for career transitions aligns with luck cycles or annual years when your Officer or Output star elements are prominent. Check the Annual Luck tab for specifics.`,
+  ];
+
+  return `<div class="analysis-grid">
+    ${lifeCard(ko ? '관성(官星)·출력성 분석' : 'Career Stars Analysis', cStars)}
+    ${lifeCard(ko ? '직업 스타일' : 'Work Style', wStyle)}
+    ${wideCard(cFields, fields)}
+    ${wideCard(ko ? '커리어 전략' : 'Career Strategy', cStratItems)}
+  </div>`;
+}
+
+function buildRelationshipsHTML(res, tgCounts) {
+  const ko = LANG === 'ko';
+  const {pillars, strength, usefulEl, stars, gender} = res;
+  const dmStemIdx = pillars.day.s;
+  const dm = STEMS[dmStemIdx];
+  const dayBranch = BRANCHES[pillars.day.b];
+  const dayStem   = STEMS[pillars.day.s];
+  const dohwaCount = (stars.dohwa || []).length;
+  const rw = tgCounts['jiecai'] || 0;
+
+  // Partner stars based on gender
+  const primaryPartnerKey   = gender === 'M' ? 'zhengcai'  : 'zhengguan';
+  const secondaryPartnerKey = gender === 'M' ? 'piancai'   : 'qisha';
+  const primaryCount   = tgCounts[primaryPartnerKey]   || 0;
+  const secondaryCount = tgCounts[secondaryPartnerKey] || 0;
+
+  // Card 1 – Partner Stars
+  let pStars;
+  if (gender === 'M') {
+    if (primaryCount >= 2 && secondaryCount <= 1) {
+      pStars = ko
+        ? `정재(正財)가 ${primaryCount}개로 강합니다. 남성 사주에서 정재는 정식 배우자(아내)를 상징합니다. 안정적이고 신뢰할 수 있는 파트너와의 관계를 추구하며, 책임감 있고 가정적인 반려자를 이상으로 삼습니다. 결혼 생활에서 안정과 의리를 중시하며, 충실하고 성실한 파트너십을 구축합니다.`
+        : `Direct Wealth (正財) appears ${primaryCount} times — in a male chart this represents the primary wife/partner star. You naturally seek stable, reliable, and committed relationships. Your ideal partner is responsible, family-oriented, and trustworthy. You prioritize loyalty and steadiness in marriage, building partnerships grounded in mutual commitment and practical support.`;
+    } else if (secondaryCount >= 2) {
+      pStars = ko
+        ? `편재(偏財)가 ${secondaryCount}개로 강합니다. 남성 사주에서 편재는 비공식적 연애 에너지, 다채로운 이성 인연을 상징합니다. 이성과의 인연이 풍부하고 매력적인 사교성을 가졌지만, 한 사람에게 집중하는 것이 장기적인 관계 안정의 핵심입니다. 편재가 강한 남성은 결혼보다 연애를 즐기는 경향이 있으며, 파트너에게 충분한 자유를 주는 관계를 선호합니다.`
+        : `Indirect Wealth (偏財) is strong (${secondaryCount}) — in a male chart this represents dynamic, non-conventional romantic energy and multiple potential romantic connections. You have natural social magnetism and attract diverse partners. The key challenge is focusing this energy on one person for long-term stability. Strong Indirect Wealth males often enjoy the process of romance itself and prefer relationships with generous personal freedom.`;
+    } else if (primaryCount === 0 && secondaryCount === 0) {
+      pStars = ko
+        ? `차트에 재성(이성 인연 별)이 보이지 않습니다. 이는 이성 인연이 없다는 것이 아니라, 대운이나 세운에서 재성이 들어올 때 중요한 인연을 만날 가능성이 높다는 신호입니다. 인연이 늦게 찾아오거나 특별한 계기가 필요한 경우가 많습니다. 재성 원소가 강한 시기에 적극적으로 인연을 넓히세요.`
+        : `Your chart shows no visible Wealth (partner) stars. This doesn't indicate a lack of relationships, but suggests important romantic connections tend to arrive during luck cycles or annual years when Wealth elements appear. Meaningful partnerships may come later or require specific catalysts. Be proactive in expanding your social circle during Wealth-element years.`;
+    } else {
+      pStars = ko
+        ? `정재(${primaryCount}개)와 편재(${secondaryCount}개)가 공존합니다. 안정적인 헌신과 활기찬 낭만 에너지가 공존하는 복합적인 이성 관계 패턴입니다. 이상적인 파트너는 안정감을 주면서도 흥미롭고 활력이 있는 사람입니다. 두 에너지의 균형을 의식적으로 유지하는 것이 관계의 지속성을 높입니다.`
+        : `Both Direct Wealth (${primaryCount}) and Indirect Wealth (${secondaryCount}) coexist — you carry both stable commitment energy and dynamic romantic energy. Your ideal partner is someone who provides security while remaining interesting and vibrant. Consciously balancing these two energies will enhance the longevity of your relationships.`;
+    }
+  } else {
+    // Female
+    if (primaryCount >= 2 && secondaryCount <= 1) {
+      pStars = ko
+        ? `정관(正官)이 ${primaryCount}개로 강합니다. 여성 사주에서 정관은 정식 배우자(남편)를 상징합니다. 책임감 있고 사회적으로 안정된 파트너를 이상으로 삼으며, 규범적이고 신뢰할 수 있는 관계를 추구합니다. 결혼 생활에서 안정과 사회적 존중을 중시하며, 파트너의 지위와 성실함을 높이 평가합니다.`
+        : `Direct Officer (正官) appears ${primaryCount} times — in a female chart this represents the primary husband/partner star. You naturally seek responsible, socially stable, and conventionally reliable partners. You value security, social standing, and trustworthiness in a relationship. Marriage is taken seriously, and you prize a partner's integrity and social position.`;
+    } else if (secondaryCount >= 2) {
+      pStars = ko
+        ? `칠살(七殺/偏官)이 ${secondaryCount}개로 강합니다. 여성 사주에서 칠살은 강렬하고 비관습적인 파트너 에너지를 상징합니다. 개성 강하고 도전적이며 자극적인 파트너에게 끌리는 경향이 있습니다. 이러한 관계는 강렬하고 변혁적이지만, 안정성 확보가 중요한 과제가 됩니다. 관계에서 자신의 경계를 명확히 유지하는 것이 필요합니다.`
+        : `Seven Kills (七殺) is prominent (${secondaryCount}) — in a female chart this represents intense, unconventional partner energy. You tend to attract and be attracted to powerful, challenging, and non-conformist partners. These relationships are transformative and deeply stimulating but may lack conventional stability. Maintaining clear personal boundaries is essential to navigating this energy successfully.`;
+    } else if (primaryCount === 0 && secondaryCount === 0) {
+      pStars = ko
+        ? `차트에 관성(이성 인연 별)이 보이지 않습니다. 이는 이성 인연이 없다는 것이 아니라, 대운이나 세운에서 관성이 들어올 때 중요한 인연이 찾아올 가능성이 높다는 신호입니다. 인연이 늦게 찾아오거나 특별한 계기로 만나는 경우가 많습니다. 독립적인 삶의 방식을 우선시하다가 적절한 시기에 깊은 관계를 맺는 패턴이 일반적입니다.`
+        : `No Officer (partner) stars are visible in your chart. This doesn't mean you won't have meaningful relationships, but suggests they tend to arrive during luck cycles or years when Officer elements appear. Your independent nature often takes precedence, with deep partnerships arriving at the right moment rather than being actively sought.`;
+    } else {
+      pStars = ko
+        ? `정관(${primaryCount}개)과 칠살(${secondaryCount}개)이 공존합니다. 안정을 주는 파트너와 자극적인 파트너 사이에서 복합적인 이성 인연 패턴을 가집니다. 이상적인 파트너는 사회적 안정성과 개성 있는 매력을 동시에 갖춘 사람입니다. 관계에서 자신이 진정으로 원하는 것이 무엇인지 명확히 하는 것이 중요합니다.`
+        : `Both Direct Officer (${primaryCount}) and Seven Kills (${secondaryCount}) coexist — you carry both conventional and unconventional romantic energies. Your ideal partner combines social stability with personal magnetism and edge. Clarifying what you truly want in a relationship is crucial to navigating this dual energy successfully.`;
+    }
+  }
+
+  // Card 2 – Spouse Palace (Day Branch)
+  const dayBranchElem = dayBranch.elem;
+  const stemElem = dm.elem;
+  let spousePalace;
+  if (stemElem === dayBranchElem) {
+    spousePalace = ko
+      ? `일간과 일지가 같은 오행(${tElem(stemElem)})으로, 배우자궁이 일간과 동기(同氣)를 이룹니다. 배우자와 성향이 비슷하거나 공통 관심사가 많을 가능성이 높습니다. 동질감에서 오는 편안함이 있지만, 서로 너무 닮아 성장 자극이 부족할 수 있습니다. 상호 보완적인 역할 분담을 의식적으로 만들어 나가는 것이 중요합니다.`
+      : `Your Day Stem and Day Branch share the same element (${tElem(stemElem)}), meaning the Spouse Palace resonates with your own energy. You likely have much in common with your partner — similar temperaments, values, and interests. This brings natural comfort but may lack the stimulating contrast that drives personal growth. Consciously cultivating complementary roles within the relationship adds depth.`;
+  } else if (GENERATES[stemElem] === dayBranchElem) {
+    spousePalace = ko
+      ? `일간(${tElem(stemElem)})이 일지(${tElem(dayBranchElem)})를 생(生)하는 구조입니다. 배우자를 지원하고 양육하는 에너지가 강하며, 관계에서 먼저 베풀고 돌보는 역할을 자연스럽게 맡게 됩니다. 이는 매우 헌신적인 파트너십을 만들지만, 자신의 필요를 소홀히 하지 않도록 주의가 필요합니다. 상호 돌봄의 균형을 유지하는 것이 장기적 관계 만족도의 핵심입니다.`
+      : `Your Day Stem (${tElem(stemElem)}) generates the Day Branch (${tElem(dayBranchElem)}) — you naturally nurture and support your partner. The relationship dynamic has you playing a giving, caretaking role. This creates a deeply devoted partnership, but be mindful not to neglect your own needs in the process. Maintaining a reciprocal balance of care is essential for long-term relationship satisfaction.`;
+  } else if (GENERATES[dayBranchElem] === stemElem) {
+    spousePalace = ko
+      ? `일지(${tElem(dayBranchElem)})가 일간(${tElem(stemElem)})을 생(生)하는 구조입니다. 배우자가 당신을 지원하고 북돋아 주는 관계 역학입니다. 파트너로부터 큰 힘과 응원을 받을 수 있으며, 결혼 생활이 개인 성장과 안정에 긍정적인 영향을 미칩니다. 이 에너지를 당연하게 여기지 않고 감사하게 받아들이는 태도가 관계를 더욱 풍요롭게 합니다.`
+      : `The Day Branch (${tElem(dayBranchElem)}) generates your Day Stem (${tElem(stemElem)}) — your partner naturally supports and empowers you. You receive tremendous energy and encouragement from your relationship, and marriage tends to have a positive impact on your personal growth and stability. Recognizing and appreciating this support rather than taking it for granted enriches the partnership.`;
+  } else if (CONTROLS[stemElem] === dayBranchElem) {
+    spousePalace = ko
+      ? `일간(${tElem(stemElem)})이 일지(${tElem(dayBranchElem)})를 극(克)하는 구조입니다. 관계에서 주도권과 통제력을 발휘하는 경향이 있습니다. 이는 강한 리더십으로 나타날 수도 있지만, 과도하면 파트너가 억압받는 느낌을 받을 수 있습니다. 상대의 자율성을 존중하고 대화를 통한 평등한 파트너십을 의식적으로 추구하는 것이 중요합니다.`
+      : `Your Day Stem (${tElem(stemElem)}) controls the Day Branch (${tElem(dayBranchElem)}) — you naturally take the lead and can be assertive in relationships. This dynamic can manifest as strong, decisive partnership leadership, but taken too far risks making your partner feel controlled or constrained. Consciously honoring your partner's autonomy and pursuing dialogue-based equality strengthens the relationship.`;
+  } else {
+    spousePalace = ko
+      ? `일지(${tElem(dayBranchElem)})가 일간(${tElem(stemElem)})을 극(克)하는 구조입니다. 배우자나 파트너가 당신에게 강한 영향력을 행사하는 관계 역학입니다. 이는 관계에서 강한 자극과 성장을 유발하지만, 지나치면 억압감이나 갈등으로 이어질 수 있습니다. 자신의 경계를 명확히 하고 건강한 역학 관계를 유지하는 것이 핵심입니다.`
+      : `The Day Branch (${tElem(dayBranchElem)}) controls your Day Stem (${tElem(stemElem)}) — your partner tends to exert strong influence over you. This can provide powerful motivation and personal growth through the relationship, but excessive control can generate tension or feelings of suppression. Establishing clear personal boundaries and maintaining a healthy power dynamic is the central challenge.`;
+  }
+
+  // Card 3 – Romance & Charm
+  let charm;
+  if (dohwaCount === 0) {
+    charm = ko
+      ? `도화살이 없는 사주입니다. 표면적인 매력보다 내면의 깊이와 진실성으로 사람을 끌어당기는 유형입니다. 첫인상보다 시간이 지날수록 매력이 더해지는 스타일로, 깊은 신뢰를 쌓은 후에 이성 관계도 발전하는 경향이 있습니다. 화려한 외적 매력보다 꾸준함과 내실이 사랑을 이끄는 힘입니다.`
+      : `No Peach Blossom (桃花) stars appear in your chart. Rather than surface charm, you attract others through depth, authenticity, and substance. Your magnetism grows over time — relationships tend to develop after genuine trust is established rather than through immediate sparks. Consistency and inner richness are your true romantic strengths.`;
+  } else if (dohwaCount === 1) {
+    charm = ko
+      ? `도화살이 1개 있습니다. 자연스러운 매력과 사교적 친근감을 가진 유형으로, 이성에게 호감을 주는 에너지가 있습니다. 지나치게 과시적이지 않으면서도 주변 사람들을 편안하게 만드는 매력이 있습니다. 이 에너지를 잘 활용하면 연애뿐 아니라 사회생활에서도 큰 도움이 됩니다.`
+      : `One Peach Blossom star graces your chart, bestowing natural social charm and romantic approachability. You have an easy, pleasant magnetism that puts people at ease without being flashy. This energy is an asset not only in romance but across all social and professional interactions. Your charm works most effectively when it flows naturally rather than being deliberately performed.`;
+  } else {
+    charm = ko
+      ? `도화살이 ${dohwaCount}개로 강합니다. 탁월한 매력과 존재감으로 이성과 주변 사람들을 자연스럽게 끌어당기는 강력한 에너지를 가지고 있습니다. 사교적·연예적·공적 영역에서 매우 유리하며, 인기와 인지도를 쉽게 얻습니다. 다만 강한 도화 에너지는 불필요한 이성 문제나 오해를 유발할 수 있으므로, 건강한 경계와 명확한 관계 정의가 필요합니다.`
+      : `A remarkable ${dohwaCount} Peach Blossom stars appear — you possess exceptional, powerful personal magnetism. People are naturally drawn to you, and you carry a presence that commands attention in any room. This energy is tremendously advantageous in social, entertainment, and public-facing spheres. The challenge is managing the attention wisely; strong Peach Blossom energy can attract unwanted romantic entanglement or misunderstandings. Clear relationship boundaries are essential.`;
+  }
+
+  // Card 4 – Relationship Advice (wide)
+  const relItems = ko ? [
+    rw >= 2
+      ? `겁재가 ${rw}개로 강합니다. 재물과 이성 인연을 두고 경쟁·방해 에너지가 작용할 수 있습니다. 특히 재물 관련 파트너 갈등이나 제3자 개입에 주의하세요.`
+      : `겁재가 적어 이성 인연에서의 경쟁 에너지가 낮습니다. 관계에서 안정적인 신뢰를 쌓는 데 집중하세요.`,
+    gender === 'M'
+      ? `재성 원소(${tElem(CONTROLS[dm.elem])})가 들어오는 대운·세운에 중요한 이성 인연을 만날 가능성이 높습니다.`
+      : `관성 원소가 들어오는 대운·세운에 중요한 이성 인연을 만날 가능성이 높습니다. 그 시기에 사교 활동을 늘리세요.`,
+    strength === 'weak'
+      ? `일간이 신약하므로 관계에서 지나치게 의존적이 되지 않도록 주의하세요. 자기 자신을 먼저 강화하는 것이 건강한 관계의 기반입니다.`
+      : `일간이 강하므로 관계에서 상대에게 충분한 공간과 자율성을 허용하는 것이 중요합니다. 강한 자아가 파트너를 압도하지 않도록 배려하세요.`,
+    `배우자궁(일지)의 오행(${tElem(dayBranchElem)})을 생활 속에서 지지하는 환경이나 활동을 함께 하면 관계가 더욱 깊어집니다.`,
+    `깊은 인연은 단기간에 형성되지 않습니다. 꾸준한 신뢰 쌓기와 솔직한 소통이 모든 관계의 근간입니다.`,
+  ] : [
+    rw >= 2
+      ? `Rob Wealth (겁재) appears ${rw} times — there may be competitive or disruptive energy around romantic connections or financial matters with partners. Be alert to third-party interference and financial entanglement in relationships.`
+      : `Low Rob Wealth reduces competitive interference in relationships. Focus on building steady, trusting connections over time.`,
+    gender === 'M'
+      ? `Key romantic encounters are most likely during luck cycles or years when the Wealth element (${tElem(CONTROLS[dm.elem])}) is prominent. Expand your social life during those periods.`
+      : `Significant relationship encounters tend to arrive when Officer-element years or luck cycles are active. Prioritize social expansion and openness during those windows.`,
+    strength === 'weak'
+      ? `Your DM is weak — guard against over-dependence in relationships. Building your own inner strength and self-sufficiency first creates the healthiest foundation for lasting partnership.`
+      : `Your strong DM means you should be mindful of giving partners sufficient space and autonomy. A powerful sense of self can unconsciously dominate — consciously practice yielding and listening.`,
+    `Sharing activities that support the Spouse Palace element (${tElem(dayBranchElem)}) deepens the bond and resonance between you and your partner.`,
+    `Deep, lasting connections take time to form. Consistent trust-building and honest communication are the bedrock of every meaningful relationship, regardless of star configurations.`,
+  ];
+
+  return `<div class="analysis-grid">
+    ${lifeCard(ko ? '파트너 별(配星) 분석' : 'Partner Stars Analysis', pStars)}
+    ${lifeCard(ko ? '배우자궁 (일지) 분석' : 'Spouse Palace (Day Branch)', spousePalace)}
+    ${lifeCard(ko ? '매력과 인연 에너지' : 'Romance & Charm', charm)}
+    ${wideCard(ko ? '관계 조언' : 'Relationship Advice', relItems)}
+  </div>`;
+}
+
+function buildHealthHTML(res) {
+  const ko = LANG === 'ko';
+  const {pillars, elemCounts, strength} = res;
+  const dmStemIdx = pillars.day.s;
+  const dm = STEMS[dmStemIdx];
+
+  const elemNames = ko
+    ? ['목(木)', '화(火)', '토(土)', '금(金)', '수(水)']
+    : ['Wood', 'Fire', 'Earth', 'Metal', 'Water'];
+
+  const organs = [
+    // Wood
+    { main: ko ? '간·담낭·눈·힘줄·신경계' : 'Liver, Gallbladder, Eyes, Tendons, Nervous System',
+      excess: ko ? '간 과부하, 눈 피로, 두통, 근육 경련, 신경 과민' : 'Liver stress, eye strain, headaches, muscle spasms, irritability and nervous tension',
+      defic: ko ? '피로 회복 저하, 눈 건조증, 힘줄 유연성 감소, 우울감' : 'Poor recovery, dry eyes, reduced tendon flexibility, mild depression' },
+    // Fire
+    { main: ko ? '심장·혈관·혀·소장·순환계' : 'Heart, Blood Vessels, Tongue, Small Intestine, Circulatory System',
+      excess: ko ? '고혈압, 심박수 이상, 수면 장애, 과잉 흥분, 구내염' : 'High blood pressure, heart palpitations, insomnia, over-excitability, mouth ulcers',
+      defic: ko ? '혈액순환 저하, 냉증, 집중력 부족, 심리적 무기력감' : 'Poor circulation, cold extremities, lack of concentration, emotional flatness' },
+    // Earth
+    { main: ko ? '위·비장·근육·입술·림프계' : 'Stomach, Spleen, Muscles, Lips, Lymphatic System',
+      excess: ko ? '소화 불량, 위장 과부하, 과식 경향, 부종, 무기력' : 'Indigestion, gastric overload, tendency to overeat, edema, heaviness and sluggishness',
+      defic: ko ? '소화 흡수력 저하, 근력 약화, 면역력 저하, 혈당 불안정' : 'Poor digestion and nutrient absorption, muscle weakness, lowered immunity, blood sugar instability' },
+    // Metal
+    { main: ko ? '폐·대장·피부·코·기관지' : 'Lungs, Large Intestine, Skin, Nose, Bronchial Tubes',
+      excess: ko ? '호흡기 과민, 알레르기, 피부 트러블, 장 경련, 과도한 집착' : 'Respiratory sensitivity, allergies, skin eruptions, intestinal cramping, perfectionism-driven stress',
+      defic: ko ? '폐활량 감소, 변비, 피부 건조·칙칙함, 면역 취약성' : 'Reduced lung capacity, constipation, dry or dull skin, weakened immune response' },
+    // Water
+    { main: ko ? '신장·방광·뼈·귀·생식계' : 'Kidneys, Bladder, Bones, Ears, Reproductive System',
+      excess: ko ? '부종, 요통, 냉증, 청력 저하, 과도한 두려움·불안' : 'Water retention, lower back pain, cold sensations, hearing sensitivity, chronic anxiety or fear',
+      defic: ko ? '골밀도 저하, 신장 기능 약화, 생식 기능 불균형, 탈수 민감성' : 'Bone density loss, reduced kidney function, reproductive imbalance, dehydration sensitivity' },
+  ];
+
+  // Find dominant and deficient elements (excluding DM element for balance check)
+  let maxIdx = 0, minIdx = 0;
+  for (let i = 0; i < 5; i++) {
+    if (elemCounts[i] > elemCounts[maxIdx]) maxIdx = i;
+    if (elemCounts[i] < elemCounts[minIdx]) minIdx = i;
+  }
+
+  // Card 1 – Dominant Element Watch
+  const domCard = lifeCard(
+    ko ? `과도 오행 주의: ${elemNames[maxIdx]}` : `Dominant Element Watch: ${elemNames[maxIdx]}`,
+    ko
+      ? `차트에서 ${elemNames[maxIdx]}이(가) ${(+elemCounts[maxIdx]).toFixed(1)}개로 가장 강합니다. 이 오행과 연관된 신체 기관(${organs[maxIdx].main})이 과부하를 받을 수 있습니다. 과도한 ${elemNames[maxIdx]} 에너지의 건강 신호: ${organs[maxIdx].excess}. 이 오행이 강한 계절이나 대운·세운에는 특히 해당 기관의 건강 검진과 예방 관리에 신경 쓰세요. 정기 검진과 생활 습관 개선으로 사전에 관리하는 것이 중요합니다.`
+      : `${elemNames[maxIdx]} is your chart's strongest element (${(+elemCounts[maxIdx]).toFixed(1)} occurrences). The organs associated with this element — ${organs[maxIdx].main} — may be prone to over-stimulation or excess strain. Signs of ${elemNames[maxIdx]} excess to watch for: ${organs[maxIdx].excess}. During seasons or luck cycles when this element is amplified, pay particular attention to preventive care and regular check-ups for these organ systems.`
+  );
+
+  // Card 2 – Deficient Element Support
+  const defCard = lifeCard(
+    ko ? `부족 오행 보완: ${elemNames[minIdx]}` : `Deficient Element Support: ${elemNames[minIdx]}`,
+    ko
+      ? `차트에서 ${elemNames[minIdx]}이(가) ${(+elemCounts[minIdx]).toFixed(1)}개로 가장 약합니다. 이 오행과 연관된 신체 기관(${organs[minIdx].main})이 만성적으로 영양 부족 상태에 있을 수 있습니다. ${elemNames[minIdx]} 부족의 건강 신호: ${organs[minIdx].defic}. 이 오행을 보강하는 식품·색상·환경을 생활 속에서 의식적으로 접목하면 전반적인 에너지 균형과 건강 회복력을 높일 수 있습니다.`
+      : `${elemNames[minIdx]} is your chart's weakest element (${(+elemCounts[minIdx]).toFixed(1)} occurrences). The organs linked to this element — ${organs[minIdx].main} — may be chronically under-nourished or vulnerable. Signs of ${elemNames[minIdx]} deficiency to monitor: ${organs[minIdx].defic}. Consciously incorporating foods, colors, and environments associated with this element supports overall energy balance and resilience.`
+  );
+
+  // Card 3 – Constitutional Type
+  const constitutions = [
+    ko
+      ? `목(木) 일간은 성장 지향적이고 유연한 체질을 가집니다. 신체적으로는 대체로 날씬하고 활동적이며, 간·담낭·눈 건강이 체질의 핵심입니다. 스트레스가 누적되면 간 기능이 저하되고 눈 피로, 두통, 근육 경련으로 나타날 수 있습니다. 규칙적인 스트레칭, 충분한 수면, 간을 위한 녹색 채소 섭취가 건강 유지의 핵심입니다. 분노나 좌절감을 잘 해소하지 못하면 간 건강에 직접 영향을 미칩니다.`
+      : `Wood Day Masters have a growth-oriented, flexible constitution. Physically tending toward lean and active builds, your core health axis revolves around liver, gallbladder, and ocular health. Accumulated stress manifests through the liver as eye fatigue, headaches, and muscle tension. Regular stretching, adequate sleep, and a diet rich in green vegetables support your constitution. Unresolved anger and frustration directly impact liver health — emotional processing is as important as physical care.`,
+    ko
+      ? `화(火) 일간은 열정적이고 에너지가 넘치는 체질을 가집니다. 심장·혈관·순환계 건강이 체질의 핵심으로, 과도한 열과 흥분은 심혈관 건강에 영향을 줍니다. 스트레스가 쌓이면 고혈압, 수면 장애, 심박수 이상이 나타날 수 있습니다. 충분한 수분 섭취, 규칙적인 유산소 운동, 명상과 이완 연습이 화 체질에 필수적입니다. 과도한 열기를 식히는 수(水) 오행 보완이 건강 균형에 도움이 됩니다.`
+      : `Fire Day Masters carry passionate, high-energy constitutions. Your health axis centers on the heart, blood vessels, and circulation. Excessive heat and excitement can strain cardiovascular function, leading to high blood pressure, sleep disturbances, and palpitations under stress. Adequate hydration, regular aerobic exercise, and relaxation practices (meditation, deep breathing) are essential. Incorporating Water-element foods and environments helps cool excess Fire energy and maintain cardiovascular balance.`,
+    ko
+      ? `토(土) 일간은 안정적이고 든든한 체질을 가집니다. 위장·비장·소화계 건강이 체질의 핵심으로, 소화 기능이 전반적인 건강 상태를 반영합니다. 과식, 불규칙한 식사, 걱정과 반추(反芻) 사고가 위장 건강에 가장 큰 영향을 미칩니다. 규칙적인 식사 시간, 소화에 좋은 발효식품·따뜻한 음식 섭취, 충분한 산책이 체질 관리에 효과적입니다. 습기와 무거운 환경을 피하고 활동적인 생활 방식을 유지하세요.`
+      : `Earth Day Masters have stable, grounded constitutions. Your health axis revolves around the stomach, spleen, and digestive system — digestive function is a direct mirror of your overall health. Overeating, irregular meals, and habitual worry or rumination are the primary disruptors of your well-being. Regular meal times, warm and easily digestible foods (fermented foods, gentle fiber), and daily walks are your best health practices. Avoid excessive dampness in your environment and maintain an active lifestyle to prevent stagnation.`,
+    ko
+      ? `금(金) 일간은 예리하고 정밀한 체질을 가집니다. 폐·기관지·대장·피부 건강이 체질의 핵심으로, 호흡기 건강이 전반적인 활력의 지표입니다. 건조한 환경, 미세먼지, 스트레스성 호흡 제한에 특히 취약합니다. 규칙적인 깊은 호흡 연습, 충분한 수분·촉촉한 환경 유지, 섬유질이 풍부한 식단이 금 체질 관리에 핵심입니다. 완벽주의와 통제 욕구가 스트레스로 이어지면 호흡기와 피부에 직접 영향을 줍니다.`
+      : `Metal Day Masters have precise, discerning constitutions. The lungs, bronchial tubes, large intestine, and skin form your primary health axis, with respiratory function as a key vitality indicator. Dry environments, air pollution, and stress-induced breathing restrictions are your primary vulnerabilities. Regular deep-breathing exercises (qigong, pranayama), adequate hydration, a humidified living environment, and a fiber-rich diet are your health cornerstones. Perfectionism and control tendencies create stress that manifests directly through skin and respiratory symptoms.`,
+    ko
+      ? `수(水) 일간은 깊고 적응력 있는 체질을 가집니다. 신장·방광·뼈·생식계 건강이 체질의 핵심으로, 신장 기능이 체력과 생명력의 근원입니다. 과도한 업무, 수면 부족, 만성 공포·불안이 신장 기(氣)를 가장 빠르게 소진시킵니다. 충분한 수면과 휴식, 따뜻하고 짠맛을 가미한 식품(해조류·검은 콩·호두 등), 신장을 보호하는 따뜻한 물 섭취가 필수입니다. 공포와 불안감을 다스리는 명상과 신경계 안정이 수 체질의 핵심 건강 전략입니다.`
+      : `Water Day Masters have deep, adaptable constitutions. The kidneys, bladder, bones, and reproductive system form your primary health axis, with kidney energy (精) as the root of vitality and life force. Overwork, sleep deprivation, and chronic fear or anxiety deplete kidney energy most rapidly. Adequate sleep, warm foods with a mildly salty quality (seaweed, black beans, walnuts), and staying well-hydrated with warm water are essential practices. Managing anxiety through meditation and nervous system regulation is a central health strategy for Water types.`,
+  ];
+  const constCard = lifeCard(
+    ko ? `체질 유형: ${elemNames[dm.elem]} 일간` : `Constitutional Type: ${elemNames[dm.elem]} Day Master`,
+    constitutions[dm.elem]
+  );
+
+  // Card 4 – Seasonal Sensitivities
+  const seasons = [
+    // Wood
+    { strong: ko ? '봄(3~5월)' : 'Spring (Mar–May)', weak: ko ? '가을(9~11월)' : 'Autumn (Sep–Nov)',
+      strongNote: ko ? '목 기운이 절정에 달하는 계절로 활동량이 늘고 기력이 넘치지만, 간·눈 과부하 주의.' : 'Wood energy peaks — high activity and vitality but watch for liver and eye overload.',
+      weakNote: ko ? '금(金)이 목을 극하는 계절로 면역력 저하, 호흡기 문제, 근육 피로에 취약.' : 'Metal controls Wood — immune dips, respiratory issues, and muscle fatigue are more likely.' },
+    // Fire
+    { strong: ko ? '여름(6~8월)' : 'Summer (Jun–Aug)', weak: ko ? '겨울(12~2월)' : 'Winter (Dec–Feb)',
+      strongNote: ko ? '화 기운이 강한 여름은 활력이 넘치지만 과열·일사병·심혈관 무리에 주의.' : 'Fire peaks in summer — vibrant but watch for overheating, heatstroke, and cardiac strain.',
+      weakNote: ko ? '수(水)가 화를 극하는 겨울은 순환 저하, 냉증, 우울감에 취약.' : 'Water controls Fire — expect circulation sluggishness, cold sensitivity, and mood dips.' },
+    // Earth
+    { strong: ko ? '환절기 (계절 교체기)' : 'Seasonal Transitions', weak: ko ? '봄(3~5월)' : 'Spring (Mar–May)',
+      strongNote: ko ? '토 기운이 활성화되는 환절기에 소화 기능이 안정적이고 에너지가 균형 잡힘.' : 'Earth activates during transitions — digestion stabilizes and energy balances.',
+      weakNote: ko ? '목(木)이 토를 극하는 봄은 소화 장애, 위장 불편, 알레르기 주의.' : 'Wood controls Earth in spring — digestive disruption, bloating, and allergies are more likely.' },
+    // Metal
+    { strong: ko ? '가을(9~11월)' : 'Autumn (Sep–Nov)', weak: ko ? '여름(6~8월)' : 'Summer (Jun–Aug)',
+      strongNote: ko ? '금 기운이 강한 가을은 폐·호흡기 건강에 유리하고 집중력이 높아짐.' : 'Metal peaks in autumn — lungs are strong, concentration improves, energy is crisp.',
+      weakNote: ko ? '화(火)가 금을 극하는 여름은 피부 트러블, 폐 열감, 과민 반응에 주의.' : 'Fire controls Metal in summer — skin flares, lung heat sensations, and hypersensitivity increase.' },
+    // Water
+    { strong: ko ? '겨울(12~2월)' : 'Winter (Dec–Feb)', weak: ko ? '여름(6~8월)' : 'Summer (Jun–Aug)',
+      strongNote: ko ? '수 기운이 절정인 겨울은 직관과 내면 성찰이 깊어지지만 냉증·요통 주의.' : 'Water peaks in winter — intuition and inner reflection deepen, but guard against cold and lower back strain.',
+      weakNote: ko ? '토(土)가 수를 극하는 여름은 신장 열감, 탈수, 수분 균형 불안정에 취약.' : 'Earth controls Water in summer — kidney heat, dehydration, and electrolyte imbalance are heightened risks.' },
+  ];
+  const s = seasons[dm.elem];
+  const seasonCard = lifeCard(
+    ko ? '계절별 건강 감수성' : 'Seasonal Health Sensitivities',
+    ko
+      ? `강한 계절: <strong>${s.strong}</strong> — ${s.strongNote} 약한 계절: <strong>${s.weak}</strong> — ${s.weakNote} 이 계절 전환 시점에 건강 검진과 생활 습관 점검을 정례화하면 예방 효과가 큽니다.`
+      : `Strong season: <strong>${s.strong}</strong> — ${s.strongNote} Vulnerable season: <strong>${s.weak}</strong> — ${s.weakNote} Scheduling preventive check-ups and lifestyle reviews at these seasonal transitions significantly improves long-term health outcomes.`
+  );
+
+  // Card 5 – Health Tips (wide)
+  const healthTips = [
+    // Wood
+    ko
+      ? ['간 해독을 돕는 녹색 잎채소(시금치·브로콜리·케일)와 쓴맛 식품을 규칙적으로 섭취하세요.',
+         '눈 건강을 위해 디지털 기기 사용 시 20-20-20 규칙(20분마다 20초간 6m 이상 먼 곳 응시)을 실천하세요.',
+         '근육과 힘줄 유연성 유지를 위해 매일 아침 10~15분 스트레칭을 습관화하세요.',
+         '분노와 좌절감은 간 기운을 소모합니다. 규칙적인 유산소 운동이나 명상으로 감정을 해소하세요.',
+         '취침 전 1~2시간의 조명 차단과 일정한 수면 시간 유지가 간 회복의 핵심입니다.']
+      : ['Include liver-supporting dark green vegetables (spinach, broccoli, kale) and bitter foods regularly in your diet.',
+         'Practice the 20-20-20 eye rule (every 20 minutes, look at something 20 feet away for 20 seconds) to protect ocular health.',
+         'Develop a daily morning stretching routine (10–15 min) to maintain tendon and muscle flexibility.',
+         'Anger and frustration drain liver energy — regular aerobic exercise or meditation is your best emotional release valve.',
+         'Maintain consistent sleep hours and limit bright light exposure 1–2 hours before bed to support liver regeneration.'],
+    // Fire
+    ko
+      ? ['과도한 자극 음식(맵고 기름진 음식·카페인·알코올)은 심혈관 열을 증가시키므로 절제하세요.',
+         '심장 건강을 위해 주 3~5회, 30분 이상의 유산소 운동(수영·걷기·자전거)을 규칙적으로 하세요.',
+         '수면 전 디지털 기기 사용을 줄이고 심신 이완 루틴(독서·명상·목욕)을 만드세요.',
+         '붉은색 과일·토마토·석류는 심혈관 건강에, 여주·오이 등 냉성 식품은 과도한 열기 조절에 도움이 됩니다.',
+         '감정적 흥분이 오래 지속되면 심장에 부담을 줍니다. 일상에 고요함과 여백을 의식적으로 만드세요.']
+      : ['Limit overstimulating foods (spicy, greasy, high caffeine, alcohol) that amplify cardiovascular heat.',
+         'Maintain regular aerobic exercise (swimming, walking, cycling) 3–5 times per week, 30+ minutes per session.',
+         'Reduce screen use before sleep and establish a calming evening routine (reading, meditation, warm bath).',
+         'Red fruits, tomatoes, and pomegranate support cardiovascular health; cooling foods (bitter melon, cucumber) help regulate excess Fire heat.',
+         'Prolonged emotional excitement burdens the heart — build conscious stillness and quiet space into your daily schedule.'],
+    // Earth
+    ko
+      ? ['규칙적인 식사 시간을 지키고, 과식과 야식을 피하세요. 위장 건강이 전반적 활력의 바로미터입니다.',
+         '발효 식품(요거트·김치·된장)과 따뜻한 수프·죽 등 소화하기 쉬운 음식이 토 체질에 이상적입니다.',
+         '같은 자세로 오래 있지 않도록 시간마다 일어나 걷거나 스트레칭을 하세요. 토 기운의 정체(停滯)를 방지합니다.',
+         '과도한 걱정과 반추 사고는 위장 기운을 소모합니다. 마음챙김 명상이나 저널링으로 생각을 정리하세요.',
+         '습한 환경보다 건조하고 따뜻한 환경이 토 체질에 유리합니다. 집안 환기를 자주 하세요.']
+      : ['Keep consistent meal times and avoid overeating or late-night meals — digestive health is your overall vitality barometer.',
+         'Fermented foods (yogurt, kimchi, miso), warm soups, and easily digestible foods are ideal for your constitution.',
+         'Avoid staying in one position for too long — get up and move or stretch each hour to prevent Earth-element stagnation.',
+         'Excessive worry and rumination drain stomach energy — mindfulness meditation or journaling helps clear mental congestion.',
+         'Warm, dry environments suit your constitution better than damp ones. Ventilate your living space frequently.'],
+    // Metal
+    ko
+      ? ['규칙적인 깊은 호흡 연습(복식호흡·기공·프라나야마)이 폐 기능 강화에 핵심입니다.',
+         '충분한 수분 섭취와 공기 가습기 사용으로 호흡기와 피부의 건조함을 예방하세요.',
+         '섬유질이 풍부한 식품(통곡물·콩류·채소)으로 장 건강을 유지하세요.',
+         '완벽주의와 긴장 해소를 위해 창의적 취미 활동(그림·음악·글쓰기)을 정기적으로 즐기세요.',
+         '공기 오염이 심한 날에는 외출 시 마스크 착용을 습관화하고, 실내 공기 정화 식물을 키우세요.']
+      : ['Practice regular deep breathing exercises (diaphragmatic breathing, qigong, pranayama) as a cornerstone of lung health.',
+         'Maintain generous fluid intake and use a humidifier to prevent respiratory and skin dryness.',
+         'Support intestinal health with fiber-rich foods (whole grains, legumes, vegetables).',
+         'Counter perfectionism and tension with regular creative hobbies (art, music, writing) for nervous system balance.',
+         'Wear masks on high-pollution days and keep indoor air-purifying plants in your living space.'],
+    // Water
+    ko
+      ? ['충분한 수면이 신장 에너지 회복의 핵심입니다. 자정 전에 취침하는 습관을 만드세요.',
+         '따뜻한 물 충분히 마시기, 해조류·검은 콩·호두 등 신장을 보강하는 식품을 규칙적으로 섭취하세요.',
+         '허리·무릎 보온과 스트레칭으로 뼈와 관절 건강을 유지하세요. 차가운 환경에 장시간 노출을 피하세요.',
+         '만성 공포와 불안은 신장 기(氣)를 가장 빠르게 소진시킵니다. 명상·심호흡·규칙적인 자연 산책이 효과적입니다.',
+         '과도한 업무와 번아웃을 예방하기 위해 주기적인 완전한 휴식(디지털 디톡스 포함)을 계획하세요.']
+      : ['Adequate sleep is the cornerstone of kidney energy recovery — make sleeping before midnight a non-negotiable habit.',
+         'Drink warm water generously; incorporate kidney-nourishing foods regularly: seaweed, black beans, walnuts, and bone broth.',
+         'Keep the lower back and knees warm and maintain flexibility with targeted stretching; avoid prolonged cold exposure.',
+         'Chronic fear and anxiety deplete kidney energy fastest — daily meditation, deep breathing, and nature walks are powerful antidotes.',
+         'Plan regular complete rest periods (including digital detox) to prevent overwork and burnout from depleting your foundational vitality.'],
+  ];
+  const tips = healthTips[dm.elem] || healthTips[0];
+
+  return `<div class="analysis-grid">
+    ${domCard}
+    ${defCard}
+    ${constCard}
+    ${seasonCard}
+    ${wideCard(ko ? '건강 관리 팁' : 'Health & Wellness Tips', tips)}
+  </div>`;
+}
+
 function renderResult(res) {
   const {pillars, elemCounts, strength, usefulEl, stars, luckData, currentLP, year, gender} = res;
   const dmStemIdx = pillars.day.s;
   const dm = STEMS[dmStemIdx];
+
+  const tgCounts = chartTenGodCounts(pillars, dmStemIdx);
+  const wealthHTML_tab    = buildWealthHTML(res, tgCounts);
+  const careerHTML_tab    = buildCareerHTML(res, tgCounts);
+  const relHTML_tab       = buildRelationshipsHTML(res, tgCounts);
+  const healthHTML_tab    = buildHealthHTML(res);
 
   const currentYear = new Date().getFullYear();
   const age = currentYear - year;
@@ -1339,6 +1911,10 @@ function renderResult(res) {
         <button class="tab-btn" onclick="switchTab('tab-stars',this)">${t('s-stars')}</button>
         <button class="tab-btn" onclick="switchTab('tab-luck',this)">${t('s-luck')}</button>
         <button class="tab-btn" onclick="switchTab('tab-annual',this)">${t('s-annual')}</button>
+        <button class="tab-btn" onclick="switchTab('tab-wealth',this)">${LANG==='ko'?'재물':'Wealth'}</button>
+        <button class="tab-btn" onclick="switchTab('tab-career',this)">${LANG==='ko'?'직업':'Career'}</button>
+        <button class="tab-btn" onclick="switchTab('tab-relations',this)">${LANG==='ko'?'인연':'Relationships'}</button>
+        <button class="tab-btn" onclick="switchTab('tab-health',this)">${LANG==='ko'?'건강':'Health'}</button>
       </div>
       <div id="tab-overview" class="tab-panel active">${overviewHTML}</div>
       <div id="tab-tengod"   class="tab-panel">
@@ -1352,6 +1928,10 @@ function renderResult(res) {
       <div id="tab-stars"    class="tab-panel">${starsHTML}</div>
       <div id="tab-luck"     class="tab-panel">${luckHTML}</div>
       <div id="tab-annual"   class="tab-panel">${annualHTML}</div>
+      <div id="tab-wealth"    class="tab-panel">${wealthHTML_tab}</div>
+      <div id="tab-career"    class="tab-panel">${careerHTML_tab}</div>
+      <div id="tab-relations" class="tab-panel">${relHTML_tab}</div>
+      <div id="tab-health"    class="tab-panel">${healthHTML_tab}</div>
     </div>`;
 
   chatHistory = [];
